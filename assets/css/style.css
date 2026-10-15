@@ -311,7 +311,6 @@ ul { margin: 0; padding: 0; }
     gap: 1.5rem;
     padding: 1.6rem 0;
     margin: 0;
-    margin-left: 100px;
 }
 .dados dt { font-size: .95rem; font-weight: 600; opacity: .8; }
 .dados dd {
@@ -499,8 +498,7 @@ ul { margin: 0; padding: 0; }
 /* --------------------------------------------------------------------------
    Formulário de inscrição
    -------------------------------------------------------------------------- */
-.inscricao { display: grid; grid-template-columns: 1fr 320px; gap: 3rem; align-items: start; }
-@media (max-width: 960px) { .inscricao { grid-template-columns: 1fr; } }
+.inscricao { max-width: 820px; }
 
 .form fieldset { border: 0; padding: 0; margin: 0 0 2.5rem; }
 .form legend {
@@ -569,10 +567,9 @@ ul { margin: 0; padding: 0; }
 .aceite { display: flex; gap: .7rem; align-items: flex-start; margin-bottom: .9rem; }
 .aceite input { width: 1.25rem; height: 1.25rem; margin-top: .2rem; accent-color: var(--azul); flex: none; }
 
-/* Resumo lateral */
+/* Resumo (dentro do formulário, entre o cupom e as confirmações) */
 .resumo {
-    position: sticky;
-    top: 92px;
+    margin: 0 0 2.5rem;
     background: var(--azul);
     color: var(--branco);
     border-radius: var(--raio);
@@ -586,7 +583,6 @@ ul { margin: 0; padding: 0; }
 .resumo .total { border-top: 1px solid rgba(255,255,255,.25); padding-top: .75rem; font-size: 1.1rem; }
 .resumo .total dd { font-family: var(--fonte-titulo); font-size: 2rem; color: var(--ouro); }
 .resumo p { font-size: .9rem; color: rgba(255,255,255,.8); margin: 1rem 0 0; }
-@media (max-width: 960px) { .resumo { position: static; order: -1; } }
 
 /* --------------------------------------------------------------------------
    Rodapé
@@ -690,3 +686,133 @@ dialog.modal p { margin: 0; color: var(--suave); }
     z-index: 1;
 }
 .modal__fechar:hover { background: var(--azul-2); }
+
+/* --------------------------------------------------------------------------
+   Inscrição recebida
+   -------------------------------------------------------------------------- */
+.recibo {
+    max-width: 560px;
+    border: 2px solid var(--azul);
+    border-top: 6px solid var(--ouro);
+    border-radius: var(--raio);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+.recibo__codigo { margin: 0 0 1rem; color: var(--suave); }
+.recibo__codigo strong {
+    display: block;
+    font-family: var(--fonte-titulo);
+    font-size: 2.6rem;
+    letter-spacing: .06em;
+    color: var(--azul);
+    line-height: 1.1;
+}
+.recibo__dados { display: grid; grid-template-columns: auto 1fr; gap: .5rem 1.5rem; margin: 0 0 1rem; }
+.recibo__dados dt { color: var(--suave); }
+.recibo__dados dd { margin: 0; font-weight: 600; text-align: right; }
+.recibo__total { font-family: var(--fonte-titulo); font-size: 1.8rem; color: var(--azul); }
+.selo { display: inline-block; padding: .15rem .7rem; border-radius: 99px; font-size: .9rem; font-weight: 600; }
+.selo--pendente { background: #FFF1C2; color: #6B4E00; }
+.selo--pago { background: #DDF3E4; color: var(--ok); }
+.selo--cancelado { background: #F6DAD7; color: var(--erro); }
+.aviso ul { margin: .5rem 0 0; padding-left: 1.25rem; }
+
+/* Mapa incorporado (Strava etc.) */
+.mapa--embed {
+    display: block;
+    aspect-ratio: auto;
+    border: 0;
+    background: none;
+    padding: 0;
+    overflow: hidden;
+    text-align: left;
+}
+.mapa--embed iframe { width: 100%; max-width: 100%; border: 0; border-radius: var(--raio); }
+
+/* Cupom de desconto */
+.cupom { display: flex; gap: .75rem; align-items: flex-end; max-width: 460px; }
+.cupom .campo { flex: 1; }
+.cupom input { text-transform: uppercase; }
+.cupom .btn { flex: none; }
+.cupom__msg { min-height: 1.5em; margin: .6rem 0 .25rem; font-weight: 600; }
+.cupom__msg--ok { color: var(--ok); }
+.cupom__msg--erro { color: var(--erro); }
+
+/* --------------------------------------------------------------------------
+   Patrocinadores: faixa de rolagem nativa (funciona arrastando em qualquer aparelho).
+   O JavaScript (main.js) faz ela andar sozinha em laço.
+   -------------------------------------------------------------------------- */
+.patrocinio { background: var(--branco); padding: 1.75rem 0 2rem; border-bottom: 1px solid var(--linha); }
+.patrocinio__topo { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
+.patrocinio h2 { font-size: 1.6rem; margin: 0; }
+.patrocinio__pausa {
+    font: inherit;
+    font-size: .88rem;
+    color: var(--suave);
+    background: none;
+    border: 0;
+    padding: .25rem 0;
+    text-decoration: underline;
+    cursor: pointer;
+}
+.patrocinio__pausa:hover { color: var(--azul); }
+
+/* Esmaecido nas bordas (sobreposição simples; evita "mask-image", que falha em alguns celulares) */
+.patrocinio__moldura { position: relative; }
+.patrocinio__moldura::before,
+.patrocinio__moldura::after {
+    content: "";
+    position: absolute;
+    top: 0; bottom: 0;
+    width: clamp(24px, 8%, 90px);
+    z-index: 1;
+    pointer-events: none;
+}
+.patrocinio__moldura::before { left: 0;  background: linear-gradient(90deg,  #fff, rgba(255, 255, 255, 0)); }
+.patrocinio__moldura::after  { right: 0; background: linear-gradient(270deg, #fff, rgba(255, 255, 255, 0)); }
+
+.patrocinio__faixa {
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-behavior: auto;               /* o "smooth" global do site não pode valer aqui */
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+.patrocinio__faixa::-webkit-scrollbar { display: none; }
+.patrocinio__faixa:focus-visible { outline-offset: -3px; }
+
+/* Parada: logos centralizados quando cabem; com muitos logos, dá para arrastar */
+.patrocinio__lista {
+    display: flex;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    width: max-content;
+    min-width: 100%;
+    justify-content: center;
+}
+/* Rolando sozinha: começa à esquerda e a lista cresce com as cópias feitas pelo JS */
+.patrocinio__faixa.rolando .patrocinio__lista { min-width: 0; justify-content: flex-start; }
+
+.patrocinio__item {
+    flex: none;
+    width: 170px;
+    height: 84px;
+    margin-right: 3rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.patrocinio__faixa:not(.rolando) .patrocinio__item:last-child { margin-right: 0; }
+.patrocinio__item a { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; }
+.patrocinio__item img { max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; }
+
+/* Celular: logos menores, para aparecerem uns três por vez */
+@media (max-width: 600px) {
+    .patrocinio { padding: 1.4rem 0 1.6rem; }
+    .patrocinio__item { width: 110px; height: 68px; margin-right: 1.5rem; }
+}
+
+.nota-valores { margin: 1.25rem 0 0; color: var(--suave); font-size: .95rem; max-width: 62ch; }

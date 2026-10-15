@@ -97,6 +97,8 @@ if ($erro_banco): ?>
             <dl class="adm-dados">
                 <dt>Categoria</dt><dd><?= e($cat['nome'] ?? $i['categoria']) ?></dd>
                 <dt>Valor da inscrição</dt><dd><?= e(moeda((float) $i['valor_inscricao'])) ?></dd>
+                <dt>Taxa de administração</dt><dd><?= e(moeda((float) $i['valor_taxa'])) ?></dd>
+                <dt>Cupom</dt><dd><?= !empty($i['cupom_codigo']) ? '<code>' . e($i['cupom_codigo']) . '</code> (desconto de ' . e(moeda((float) $i['valor_desconto'])) . ')' : '—' ?></dd>
                 <dt>Camiseta</dt><dd><?= $i['camiseta_tamanho'] ? e(moeda((float) $i['valor_camiseta'])) . ' (tamanho ' . e($i['camiseta_tamanho']) . ')' : 'Não' ?></dd>
                 <dt>Total</dt><dd><strong><?= e(moeda((float) $i['valor_total'])) ?></strong></dd>
                 <dt>Situação</dt><dd><?= e(STATUS_ROTULOS[$i['status']] ?? $i['status']) ?></dd>

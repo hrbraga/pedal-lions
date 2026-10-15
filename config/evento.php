@@ -6,6 +6,8 @@
  *
  * Itens marcados com "A confirmar" ainda precisam ser definidos pela organização.
  */
+$taxa_pct = 10; // taxa de administração (%), cobrada sobre o valor da inscrição (não inclui a camiseta)
+
 return [
 
     'nome'         => '2º Pedal Solidário',
@@ -27,6 +29,18 @@ return [
         'instagram' => '',                        // Ex.: https://instagram.com/seuperfil
     ],
 
+    // Patrocinadores: os logos são lidos da pasta assets/img/patrocinadores/ (veja o LEIAME.txt dela).
+    // Opcional: nome (texto alternativo) e link de cada patrocinador, pelo NOME DO ARQUIVO. Exemplo:
+    //   '01-empresa-x.png' => ['nome' => 'Empresa X', 'url' => 'https://www.empresax.com.br'],
+    'patrocinadores_info' => [
+    ],
+
+    // Taxa de administração: calculada sobre o valor CHEIO da inscrição (o cupom não a reduz).
+    // A camiseta é isenta. Para mudar o percentual, altere $taxa_pct no topo deste arquivo.
+    'taxa_administracao' => [
+        'percentual' => $taxa_pct,
+    ],
+
     // Camiseta oficial (compra opcional, à parte da inscrição)
     'camiseta' => [
         'valor'      => 130.00,
@@ -34,7 +48,7 @@ return [
         'prazo_iso'  => '2027-02-20',
         'tamanhos'   => ['PP', 'P', 'M', 'G', 'GG', 'XG', 'XXG'],
         // Coloque os arquivos em assets/img/ com estes nomes. Enquanto não existirem, aparece um aviso no lugar.
-        'arte'       => 'camiseta.jpg',
+        'arte'       => 'camiseta.png',
         'tabela'     => 'tabela-tamanhos.png',
     ],
 
@@ -76,17 +90,17 @@ return [
         [
             'titulo' => 'Hard e Light',
             'regra'  => '1º ao 5º lugar geral, masculino e feminino',
-            'premio' => '',
+            'premio' => 'Troféu',
         ],
         [
             'titulo' => 'E-bikes Hard',
             'regra'  => '1º ao 3º lugar geral, masculino e feminino',
-            'premio' => '',
+            'premio' => 'Troféu',
         ],
         [
             'titulo' => 'Maiores equipes',
             'regra'  => '1º ao 3º lugar',
-            'premio' => '',
+            'premio' => 'Troféu',
         ],
     ],
 
@@ -94,40 +108,43 @@ return [
     'rotas' => [
         [
             'nome'       => 'Light',
-            'distancia'  => 'A confirmar',
-            'altimetria' => 'A confirmar',
-            'terreno'    => 'A confirmar',
+            'distancia'  => '24 km',
+            'altimetria' => '490 m',
             'descricao'  => 'Percurso para pedalar em ritmo leve, aberto a quem está começando.',
-            'mapa_url'   => '', // Cole aqui o link de incorporação (Google My Maps, Strava, Ride with GPS...)
-        ],
-        [
-            'nome'       => 'Hard',
-            'distancia'  => 'A confirmar',
-            'altimetria' => 'A confirmar',
-            'terreno'    => 'A confirmar',
-            'descricao'  => 'Percurso mais longo e com maior exigência física. Também é o percurso das e-bikes.',
+            
+            'mapa_embed' => <<<'HTML'
+
+<div class="strava-embed-placeholder" data-embed-type="route" data-embed-id="3456356447837639954" data-full-width="true" data-style="standard" data-map-hash="11.95/-23.19164/-50.59554" data-from-embed="true" data-token="15S0cgPwjMxxv8HRKnFsKR5iP-Nu139ZdaQhXPnC5UI"></div><script src="https://strava-embeds.com/embed.js"></script>
+
+
+HTML,
             'mapa_url'   => '',
         ],
         [
-            'nome'       => 'Rachão',
-            'distancia'  => 'A confirmar',
-            'altimetria' => 'A confirmar',
-            'terreno'    => 'A confirmar',
-            'descricao'  => 'Percurso competitivo, para quem vai disputar a classificação geral.',
-            'mapa_url'   => '',
+            'nome'       => 'Hard / Rachão / E-bikes',
+            'distancia'  => '42 km',
+            'altimetria' => '860 m',
+            'descricao'  => 'Percurso mais longo e com maior exigência física.',
+            'mapa_embed' => <<<'HTML'
+
+<div class="strava-embed-placeholder" data-embed-type="route" data-embed-id="3456363824372913536" data-full-width="true" data-style="standard" data-from-embed="false" data-token="l13f0AIscPIsA_34ehX9L-n_FDQqmDkEVxv70Sxa3rc"></div><script src="https://strava-embeds.com/embed.js"></script>
+HTML,
+            'mapa_url'   => 'https://www.strava.com/routes/3456363824372913536',
         ],
     ],
 
     // Programação (horários a definir pela organização)
     'programacao' => [
-        ['hora' => 'A definir', 'titulo' => 'Retirada de kits',           'desc' => 'Apresente um documento com foto e o comprovante de inscrição.'],
-        ['hora' => 'A definir', 'titulo' => 'Abertura da concentração',   'desc' => 'Chegada dos participantes, check-in e aquecimento.'],
-        ['hora' => 'A definir', 'titulo' => 'Briefing de segurança',      'desc' => 'Orientações sobre o percurso, sinalização e pontos de apoio.'],
-        ['hora' => 'A definir', 'titulo' => 'Largada Rachão',             'desc' => ''],
-        ['hora' => 'A definir', 'titulo' => 'Largada Hard e E-bikes',     'desc' => ''],
-        ['hora' => 'A definir', 'titulo' => 'Largada Light',              'desc' => ''],
-        ['hora' => 'A definir', 'titulo' => 'Chegada e confraternização', 'desc' => 'Hidratação, lanche e encontro dos participantes.'],
-        ['hora' => 'A definir', 'titulo' => 'Premiação',                  'desc' => 'Entrega de troféus e premiações por categoria e equipes.'],
+        ['hora' => '6:00', 'titulo' => 'Retirada de kits',           'desc' => 'Apresente um documento com foto e o comprovante de inscrição.'],
+        ['hora' => '6:30', 'titulo' => 'Café da Manhã',   'desc' => 'Chegada dos participantes, check-in e aquecimento.'],
+        ['hora' => '7:15', 'titulo' => 'Briefing de segurança',      'desc' => 'Orientações sobre o percurso, sinalização e pontos de apoio.'],
+        ['hora' => '7:30', 'titulo' => 'Largada Rachão',             'desc' => ''],
+        ['hora' => '7:40', 'titulo' => 'Largada Hard e E-bikes',     'desc' => ''],
+        ['hora' => '7:50', 'titulo' => 'Largada Light',              'desc' => ''],
+        ['hora' => '10:30', 'titulo' => 'Sorteios', 'desc' => 'Sorteio de Brindes para os participantes que completarem o percurso.'],
+        ['hora' => '10:45', 'titulo' => 'Premiação',                  'desc' => 'Entrega de troféus e premiações por categoria e equipes.'],
+        ['hora' => '12:00', 'titulo' => 'Encerramento',                  'desc' => 'Finalização do evento e agradecimentos aos participantes.'],
+
     ],
 
     // Perguntas frequentes
@@ -142,7 +159,7 @@ return [
         ],
         [
             'p' => 'Quanto custa a inscrição?',
-            'r' => 'R$ 60,00 para Hard e Light e R$ 70,00 para o Rachão. Consulte a página de inscrição para ver o valor da categoria escolhida.',
+            'r' => 'R$ 60,00 para Hard e Light e R$ 70,00 para o Rachão. Sobre o valor da inscrição incide uma taxa de administração de ' . $taxa_pct . '%, somada no pagamento. A camiseta (opcional, R$ 130,00) não tem taxa nem desconto. O resumo da página de inscrição mostra o total exato.',
         ],
         [
             'p' => 'Minha inscrição já está confirmada depois de preencher o formulário?',

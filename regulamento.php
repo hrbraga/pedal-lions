@@ -32,6 +32,7 @@ require __DIR__ . '/includes/header.php';
             <ul>
                 <li>A inscrição é feita exclusivamente pelo site oficial do evento.</li>
                 <li>A inscrição só é efetivada após a confirmação do pagamento. Enquanto o pagamento não for confirmado, a inscrição fica pendente e não garante vaga nem kit.</li>
+                <li>Sobre o valor da inscrição incide taxa de administração de <?= e(taxa_rotulo()) ?>, somada ao pagamento. Eventual cupom de desconto abate apenas o valor da inscrição, sem alterar a taxa, exceto quando o cupom cobre 100% da inscrição: nesse caso a taxa também é isenta. A camiseta, quando adquirida, não tem taxa nem desconto.</li>
                 <li>O participante é responsável por informar dados corretos. Os dados informados serão usados para a organização do evento e a classificação.</li>
                 <li>Prazo de inscrição e limite de vagas: a confirmar.</li>
             </ul>

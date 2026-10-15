@@ -1,0 +1,19 @@
+PATROCINADORES
+
+Coloque aqui o logo de cada patrocinador (png, jpg, webp, svg ou gif).
+Cada arquivo que entrar nesta pasta aparece sozinho no carrossel da página inicial. Não há limite.
+
+Dicas
+- Prefira PNG ou SVG com fundo transparente, ou logos com fundo branco.
+- Tamanho sugerido: uns 400 px de largura. O site ajusta para caber em 170 x 84 px.
+- A ordem segue o nome do arquivo. Use números no começo para controlar:
+    01-empresa-x.png, 02-padaria-y.png, 03-clinica-z.png
+- O nome do arquivo (sem o número e sem a extensão) vira o texto alternativo do logo.
+
+Link e nome personalizados (opcional)
+Abra config/evento.php, procure 'patrocinadores_info' e acrescente uma linha por patrocinador:
+
+    '01-empresa-x.png' => ['nome' => 'Empresa X Ltda', 'url' => 'https://www.empresax.com.br'],
+
+Se o patrocinador tiver link, o logo vira clicável e abre em uma nova aba.
+Para remover um patrocinador, apague o arquivo da pasta.

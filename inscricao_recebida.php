@@ -9,7 +9,7 @@ $falha = false;
 $codigo = strtoupper(trim((string) ($_GET['c'] ?? '')));
 if (preg_match('/^[A-F0-9]{10}$/', $codigo)) {
     try {
-        $st = db()->prepare('SELECT codigo, nome, categoria, camiseta_tamanho, valor_inscricao, valor_camiseta, valor_total, status
+        $st = db()->prepare('SELECT codigo, nome, categoria, camiseta_tamanho, valor_inscricao, valor_desconto, cupom_codigo, valor_taxa, valor_camiseta, valor_total, status
                              FROM inscricoes WHERE codigo = :c LIMIT 1');
         $st->execute([':c' => $codigo]);
         $inscricao = $st->fetch() ?: null;
@@ -29,7 +29,7 @@ $rotulos = ['pendente' => 'Aguardando pagamento', 'pago' => 'Pagamento confirmad
 <div class="pagina-topo">
     <div class="wrap">
         <h1><?= $inscricao ? 'Inscrição recebida' : 'Inscrição não encontrada' ?></h1>
-        <p><?= $inscricao ? 'Seus dados foram registrados. Falta só o pagamento para efetivar a inscrição.' : 'Confira o link ou volte para a página de inscrição.' ?></p>
+        <p><?= $inscricao ? ($inscricao['status'] === 'pago' ? 'Seus dados foram registrados e a inscrição está confirmada.' : 'Seus dados foram registrados. Falta só o pagamento para efetivar a inscrição.') : 'Confira o link ou volte para a página de inscrição.' ?></p>
     </div>
 </div>
 
@@ -38,7 +38,11 @@ $rotulos = ['pendente' => 'Aguardando pagamento', 'pago' => 'Pagamento confirmad
         <?php if ($inscricao): ?>
             <?php $cat = categoria_por_slug($inscricao['categoria']); ?>
 
-            <p class="aviso"><strong>Sua vaga ainda não está garantida.</strong> A inscrição só é efetivada após a confirmação do pagamento. As instruções de pagamento serão divulgadas em breve e enviadas ao seu e-mail.</p>
+            <?php if ($inscricao['status'] === 'pago'): ?>
+                <p class="aviso aviso--ok"><strong>Inscrição confirmada.</strong> Não há valor a pagar.</p>
+            <?php else: ?>
+                <p class="aviso"><strong>Sua vaga ainda não está garantida.</strong> A inscrição só é efetivada após a confirmação do pagamento. As instruções de pagamento serão divulgadas em breve e enviadas ao seu e-mail.</p>
+            <?php endif; ?>
 
             <div class="recibo">
                 <p class="recibo__codigo">Código da inscrição <strong><?= e($inscricao['codigo']) ?></strong></p>
@@ -49,6 +53,14 @@ $rotulos = ['pendente' => 'Aguardando pagamento', 'pago' => 'Pagamento confirmad
                     <dd><?= e($cat['nome'] ?? $inscricao['categoria']) ?></dd>
                     <dt>Inscrição</dt>
                     <dd><?= e(moeda((float) $inscricao['valor_inscricao'])) ?></dd>
+                    <?php if ((float) $inscricao['valor_taxa'] > 0): ?>
+                        <dt>Taxa de administração</dt>
+                        <dd><?= e(moeda((float) $inscricao['valor_taxa'])) ?></dd>
+                    <?php endif; ?>
+                    <?php if ((float) $inscricao['valor_desconto'] > 0): ?>
+                        <dt>Desconto (cupom <?= e($inscricao['cupom_codigo']) ?>)</dt>
+                        <dd>− <?= e(moeda((float) $inscricao['valor_desconto'])) ?></dd>
+                    <?php endif; ?>
                     <dt>Camiseta</dt>
                     <dd>
                         <?php if ($inscricao['camiseta_tamanho']): ?>

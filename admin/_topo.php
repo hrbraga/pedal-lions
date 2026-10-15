@@ -14,7 +14,7 @@ $logo_admin = imagem_opcional('logo.png');
     <meta name="robots" content="noindex, nofollow">
     <title><?= e($titulo_admin) ?> | Administração</title>
     <link rel="icon" href="../favicon.ico" sizes="any">
-    <link rel="stylesheet" href="../assets/css/admin.css">
+    <link rel="stylesheet" href="../<?= e(asset('assets/css/admin.css')) ?>">
 </head>
 <body>
 <?php if ($mostrar_menu): ?>
@@ -26,6 +26,8 @@ $logo_admin = imagem_opcional('logo.png');
         </a>
         <nav class="adm-menu" aria-label="Painel">
             <a href="painel.php"<?= $menu_ativo === 'inscritos' ? ' aria-current="page"' : '' ?>>Inscritos</a>
+            <a href="cupons.php"<?= $menu_ativo === 'cupons' ? ' aria-current="page"' : '' ?>>Cupons</a>
+            <a href="administradores.php"<?= $menu_ativo === 'admins' ? ' aria-current="page"' : '' ?>>Administradores</a>
             <a href="exportar.php">Exportar CSV</a>
             <a href="../index.php" target="_blank" rel="noopener">Ver site</a>
             <a href="logout.php">Sair (<?= e($_SESSION['admin_usuario'] ?? '') ?>)</a>

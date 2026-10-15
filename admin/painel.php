@@ -20,8 +20,8 @@ try {
     $pdo = db();
 
     // Totais gerais (não dependem dos filtros)
-    foreach ($pdo->query('SELECT status, COUNT(*) AS n, COALESCE(SUM(valor_total),0) AS valor FROM inscricoes GROUP BY status') as $r) {
-        $resumo[$r['status']] = ['n' => (int) $r['n'], 'valor' => (float) $r['valor']];
+    foreach ($pdo->query('SELECT status, COUNT(*) AS n, COALESCE(SUM(valor_total),0) AS valor, COALESCE(SUM(valor_taxa),0) AS taxa FROM inscricoes GROUP BY status') as $r) {
+        $resumo[$r['status']] = ['n' => (int) $r['n'], 'valor' => (float) $r['valor'], 'taxa' => (float) $r['taxa']];
     }
     foreach ($pdo->query('SELECT categoria, status, COUNT(*) AS n FROM inscricoes WHERE status <> \'cancelado\' GROUP BY categoria, status') as $r) {
         $por_categoria[$r['categoria']][$r['status']] = (int) $r['n'];
@@ -79,12 +79,12 @@ require __DIR__ . '/_topo.php';
     <div class="adm-card">
         <span>Pagos</span>
         <strong><?= (int) $resumo['pago']['n'] ?></strong>
-        <small><?= e(moeda($resumo['pago']['valor'])) ?> recebidos</small>
+        <small><?= e(moeda($resumo['pago']['valor'])) ?> recebidos (<?= e(moeda((float) ($resumo['pago']['taxa'] ?? 0))) ?> de taxa)</small>
     </div>
     <div class="adm-card">
         <span>Pendentes</span>
         <strong><?= (int) $resumo['pendente']['n'] ?></strong>
-        <small><?= e(moeda($resumo['pendente']['valor'])) ?> a receber</small>
+        <small><?= e(moeda($resumo['pendente']['valor'])) ?> a receber (<?= e(moeda((float) ($resumo['pendente']['taxa'] ?? 0))) ?> de taxa)</small>
     </div>
     <div class="adm-card">
         <span>Cancelados</span>

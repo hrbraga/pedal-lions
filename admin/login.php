@@ -40,6 +40,7 @@ try {
                 $_SESSION['admin_id']     = (int) $adm['id'];
                 $_SESSION['admin_usuario'] = $adm['usuario'];
                 $_SESSION['admin_ultimo'] = time();
+                $_SESSION['admin_sig']    = admin_assinatura($adm['senha_hash']);
                 unset($_SESSION['csrf']);
                 header('Location: painel.php');
                 exit;

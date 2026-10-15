@@ -2,12 +2,14 @@
 $pagina = 'inicio';
 require __DIR__ . '/includes/header.php';
 
-$banner = imagem_opcional('banner.png'); 
+$banner = imagem_opcional('banner.png'); // Se existir assets/img/banner.jpg, ele vira o fundo do topo.
 ?>
 
 <section class="hero<?= $banner ? ' hero--imagem' : '' ?>"<?= $banner ? ' style="background-image:url(\'' . e($banner) . '\')"' : '' ?>>
     <div class="wrap hero__conteudo">
-       
+        <?php if ($logo): ?>
+            <img class="hero__logo" src="<?= e($logo) ?>" alt="Lions Clube" width="321" height="303">
+        <?php endif; ?>
         <p class="hero__org"><?= e($ev['organizador']) ?> apresenta</p>
         <h1>2º Pedal <span>Solidário</span></h1>
         <p class="hero__data"><?= e($ev['data_extenso']) ?> · <?= e($ev['cidade']) ?>, <?= e($ev['uf']) ?></p>
@@ -39,22 +41,33 @@ $banner = imagem_opcional('banner.png');
     </div>
 </section>
 
-<section class="dados" aria-label="Informações principais">
-    <dl class="wrap dados__grade">
-        <div>
-            <dt>Data</dt>
-            <dd><?= e($ev['data_curta']) ?></dd>
+<?php $patrocinadores = patrocinadores(); ?>
+<?php if ($patrocinadores): ?>
+<section class="patrocinio" aria-labelledby="patrocinio-titulo">
+    <div class="wrap patrocinio__topo">
+        <h2 id="patrocinio-titulo">Patrocinadores</h2>
+    </div>
+
+    <!-- Faixa de rolagem nativa: arrasta com o dedo e, com JavaScript, também anda sozinha em laço (assets/js/main.js) -->
+    <div class="patrocinio__moldura">
+        <div class="patrocinio__faixa" tabindex="0" role="region" aria-label="Logos dos patrocinadores">
+            <ul class="patrocinio__lista">
+                <?php foreach ($patrocinadores as $pat): ?>
+                    <li class="patrocinio__item">
+                        <?php if ($pat['url'] !== ''): ?>
+                            <a href="<?= e($pat['url']) ?>" target="_blank" rel="noopener sponsored" aria-label="<?= e($pat['nome']) ?> (abre em nova aba)">
+                                <img src="<?= e($pat['arquivo']) ?>" alt="<?= e($pat['nome']) ?>" loading="lazy" decoding="async">
+                            </a>
+                        <?php else: ?>
+                            <img src="<?= e($pat['arquivo']) ?>" alt="<?= e($pat['nome']) ?>" loading="lazy" decoding="async">
+                        <?php endif; ?>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
         </div>
-        <div>
-            <dt>Cidade</dt>
-            <dd><?= e($ev['cidade']) ?>, <?= e($ev['uf']) ?></dd>
-        </div>
-        <div>
-            <dt>Inscrição a partir de</dt>
-            <dd><?= e(moeda(menor_valor())) ?></dd>
-        </div>
-    </dl>
+    </div>
 </section>
+<?php endif; ?>
 
 <section class="secao">
     <div class="wrap">
@@ -70,6 +83,7 @@ $banner = imagem_opcional('banner.png');
                 </li>
             <?php endforeach; ?>
         </ul>
+        <p class="nota-valores">Sobre o valor da inscrição incide taxa de administração de <?= e(taxa_rotulo()) ?>, somada no pagamento. O cupom de desconto vale só para a inscrição. A camiseta é opcional e não tem taxa nem desconto.</p>
     </div>
 </section>
 

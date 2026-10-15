@@ -34,7 +34,7 @@ fwrite($saida, "\xEF\xBB\xBF"); // BOM para o Excel reconhecer acentos
 
 $cabecalho = ['Código', 'Nome', 'CPF', 'Nascimento', 'Sexo', 'E-mail', 'WhatsApp', 'Cidade', 'UF', 'Categoria', 'Equipe',
               'Camiseta', 'Contato de emergência', 'Telefone de emergência', 'Saúde',
-              'Valor inscrição', 'Valor camiseta', 'Valor total', 'Situação', 'Pago em', 'Inscrito em'];
+              'Valor inscrição', 'Taxa de administração', 'Cupom', 'Desconto', 'Valor camiseta', 'Valor total', 'Situação', 'Pago em', 'Inscrito em'];
 fputcsv($saida, $cabecalho, ';', '"', '');
 
 while ($i = $st->fetch()) {
@@ -56,6 +56,9 @@ while ($i = $st->fetch()) {
         telefone_formatado($i['emerg_tel']),
         celula($i['saude']),
         number_format((float) $i['valor_inscricao'], 2, ',', ''),
+        number_format((float) ($i['valor_taxa'] ?? 0), 2, ',', ''),
+        celula($i['cupom_codigo'] ?? ''),
+        number_format((float) ($i['valor_desconto'] ?? 0), 2, ',', ''),
         number_format((float) $i['valor_camiseta'], 2, ',', ''),
         number_format((float) $i['valor_total'], 2, ',', ''),
         STATUS_ROTULOS[$i['status']] ?? $i['status'],

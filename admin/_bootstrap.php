@@ -29,6 +29,12 @@ const STATUS_ROTULOS = [
     'cancelado' => 'Cancelado',
 ];
 
+/** Assinatura da senha guardada na sessão: se a senha mudar no banco, a sessão deixa de valer. */
+function admin_assinatura(string $hash): string
+{
+    return hash('sha256', $hash);
+}
+
 function admin_logado(): bool
 {
     if (empty($_SESSION['admin_id'])) {
@@ -38,6 +44,20 @@ function admin_logado(): bool
         admin_sair();
         return false;
     }
+
+    // Confere no banco: o administrador ainda existe e a senha continua a mesma?
+    try {
+        $st = db()->prepare('SELECT senha_hash FROM admins WHERE id = :id');
+        $st->execute([':id' => (int) $_SESSION['admin_id']]);
+        $hash = $st->fetchColumn();
+    } catch (PDOException $e) {
+        return false;
+    }
+    if ($hash === false || !hash_equals((string) ($_SESSION['admin_sig'] ?? ''), admin_assinatura((string) $hash))) {
+        admin_sair();
+        return false;
+    }
+
     $_SESSION['admin_ultimo'] = time();
     return true;
 }

@@ -31,7 +31,7 @@ $menu = [
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="<?= e(asset('assets/css/style.css')) ?>">
 </head>
 <body class="pagina-<?= e($pagina) ?>">
 <a class="pular" href="#conteudo">Ir para o conteúdo</a>
