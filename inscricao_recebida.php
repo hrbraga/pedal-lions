@@ -77,6 +77,11 @@ $rotulos = ['pendente' => 'Aguardando pagamento', 'pago' => 'Pagamento confirmad
                 <p class="dica">Guarde este código. Ele identifica a sua inscrição junto à organização.</p>
             </div>
 
+            <div class="aviso">
+                <p><strong>Inscrição feita? Avise a galera!</strong> Monte sua foto com a moldura do evento e poste no Instagram.</p>
+                <p><a class="btn btn--ouro btn--pequeno" href="avatar.php">Montar minha foto “Eu vou!”</a></p>
+            </div>
+
             <p><a class="btn btn--azul" href="index.php">Voltar ao início</a></p>
 
         <?php elseif ($falha): ?>

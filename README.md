@@ -22,6 +22,14 @@
 - O desconto vale só para a inscrição, nunca para a camiseta.
 - O banco se atualiza sozinho na primeira visita (tabelas/colunas dos cupons); o `schema.sql` já inclui tudo para instalações novas.
 
+## Avatar "Eu vou!"
+- Página `avatar.php` (menu **Eu vou!**, botão na home e chamada após a inscrição): a pessoa escolhe uma foto,
+  ajusta atrás da moldura e compartilha ou baixa em **Feed 1:1** (1080×1080) ou **Stories 9:16** (1080×1920).
+- Tudo acontece no navegador: a foto não é enviada ao servidor.
+- Molduras: `assets/img/avatar/moldura-1x1.png` e `assets/img/avatar/moldura-9x16.png`. Devem ser PNG **com
+  transparência real** no recorte, em 1080×1080 e 1080×1920. Para trocar a arte, substitua os arquivos mantendo os nomes.
+- Testes dos cálculos de ajuste: `node --test` na raiz do projeto.
+
 ## Mapas das rotas (Strava)
 No Strava: página da rota → menu "..." → **Embed** → copiar o código. Cole em `config/evento.php`, no campo `mapa_embed` da rota,
 entre as linhas `<<<'HTML'` e `HTML,`.

@@ -19,6 +19,7 @@ $banner = imagem_opcional('banner.png'); // Se existir assets/img/banner.jpg, el
                 <a class="btn btn--ouro" href="inscricao.php">Fazer minha inscrição</a>
             <?php endif; ?>
             <a class="btn btn--contorno" href="rotas.php">Ver rotas</a>
+            <a class="btn btn--contorno" href="avatar.php">Eu vou!</a>
         </div>
 
         <p class="hero__contagem" data-contagem="<?= e($ev['data_iso']) ?>"></p>
