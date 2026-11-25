@@ -20,7 +20,9 @@
     var abas = raiz.querySelectorAll('[role="tab"]');
 
     var MSG_ERRO_FOTO = 'Não conseguimos abrir essa imagem. Tente uma foto em JPG ou PNG.';
-    var MSG_SEM_COMPARTILHAR = 'Não deu para compartilhar daqui. Baixamos a imagem para você postar.';
+    var MSG_ERRO_MOLDURA = 'Não foi possível carregar a moldura. Recarregue a página.';
+    var MSG_TOQUE_DE_NOVO = 'Imagem pronta! Toque em Compartilhar de novo.';
+    var MSG_SEM_COMPARTILHAR ='Não deu para compartilhar daqui. Baixamos a imagem para você postar.';
     var TEXTO_COMPARTILHAR = 'Eu vou! 🚴 2º Pedal Solidário – 14/03/2027';
 
     var podeCompartilhar = false;
@@ -37,6 +39,8 @@
     var estados = { feed: null, stories: null };
     var molduras = {};            // formato -> HTMLImageElement carregada
     var buracos = {};             // formato -> {x,y,w,h} do recorte transparente
+    var semRecorte = {};          // formato -> true se o estado foi criado antes da moldura carregar
+    var canvasExport = document.createElement('canvas'); // reaproveitado (limite de memória do iOS)
 
     function saidaDe(formato) {
         var f = G.FORMATOS[formato];
@@ -51,6 +55,7 @@
     function estadoDe(formato) {
         if (!estados[formato]) {
             estados[formato] = G.estadoInicial(dimsFoto(), saidaDe(formato), buracos[formato] || null);
+            semRecorte[formato] = !molduras[formato];
         }
         return estados[formato];
     }
@@ -93,7 +98,7 @@
         arquivoPronto = null;
         versaoArquivo++;
         clearTimeout(timerArquivo);
-        if (!foto) return;
+        if (!podeExportar()) return;
         var versao = versaoArquivo;
         timerArquivo = setTimeout(function () {
             gerarArquivo().then(function (arquivo) {
@@ -102,12 +107,17 @@
         }, 400);
     }
 
+    /** Só exporta com foto e com a moldura do formato já carregada (nunca sai imagem sem moldura). */
+    function podeExportar() {
+        return !!foto && !!molduras[formatoAtual];
+    }
+
     function atualizarBotoes() {
         var semFoto = !foto;
         zoomRange.disabled = semFoto;
         btnCentralizar.disabled = semFoto;
-        btnBaixar.disabled = semFoto;
-        btnCompartilhar.disabled = semFoto;
+        btnBaixar.disabled = !podeExportar();
+        btnCompartilhar.disabled = !podeExportar();
         zoomRange.value = semFoto ? 1 : estadoDe(formatoAtual).zoom;
     }
 
@@ -132,8 +142,20 @@
             } catch (err) {
                 buracos[formato] = null; // sem acesso aos pixels: centraliza na imagem toda
             }
+            aux.width = aux.height = 0; // libera a memória do canvas auxiliar
             molduras[formato] = img;
-            if (formato === formatoAtual) redesenhar();
+            // a foto chegou antes da moldura: refaz o enquadramento inicial, agora no recorte
+            if (semRecorte[formato]) {
+                estados[formato] = null;
+                semRecorte[formato] = false;
+            }
+            if (formato === formatoAtual) {
+                atualizarBotoes();
+                redesenhar();
+            }
+        };
+        img.onerror = function () {
+            aviso.textContent = MSG_ERRO_MOLDURA;
         };
         img.src = G.FORMATOS[formato].moldura;
     });
@@ -180,8 +202,11 @@
         aviso.textContent = '';
         abrirImagem(arquivo)
             .then(function (origem) {
-                foto = reduzir(origem);
+                var nova = reduzir(origem);
+                if (foto) foto.width = foto.height = 0; // libera a foto anterior
+                foto = nova;
                 estados = { feed: null, stories: null };
+                semRecorte = {};
                 atualizarBotoes();
                 redesenhar();
                 canvas.focus({ preventScroll: true });
@@ -315,10 +340,11 @@
     function gerarArquivo() {
         var formato = formatoAtual;
         var s = saidaDe(formato);
-        var c = document.createElement('canvas');
+        var c = canvasExport;
         c.width = s.w;
         c.height = s.h;
         desenhar(c.getContext('2d'), formato);
+        // toBlob copia o conteúdo na hora da chamada, então reaproveitar o canvas é seguro
         return new Promise(function (resolve, reject) {
             c.toBlob(function (blob) {
                 if (!blob) { reject(new Error('falha ao gerar a imagem')); return; }
@@ -335,31 +361,48 @@
         document.body.appendChild(a);
         a.click();
         a.remove();
-        setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+        // o iOS pede confirmação do download; revogar cedo demais faz o download falhar
+        setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
     }
 
+    /**
+     * Entrega o arquivo final: na hora, se já estiver pré-gerado (mantém o "toque" válido no iPhone),
+     * senão gera agora e guarda para o próximo toque. `usar(arquivo, tardio)`.
+     */
     function obterArquivo(usar) {
-        if (arquivoPronto) usar(arquivoPronto); // síncrono: mantém o "toque" válido no iPhone
-        else gerarArquivo().then(usar);
+        if (arquivoPronto) {
+            usar(arquivoPronto, false);
+            return;
+        }
+        var versao = versaoArquivo;
+        gerarArquivo().then(function (arquivo) {
+            if (versao === versaoArquivo) arquivoPronto = arquivo;
+            usar(arquivo, true);
+        });
     }
 
-    function compartilhar(arquivo) {
+    function compartilhar(arquivo, tardio) {
         navigator.share({ files: [arquivo], title: '2º Pedal Solidário', text: TEXTO_COMPARTILHAR })
             .catch(function (err) {
                 if (err && err.name === 'AbortError') return; // a pessoa cancelou
+                if (tardio && err && err.name === 'NotAllowedError') {
+                    // o toque "expirou" enquanto a imagem era gerada; agora ela já está pronta
+                    aviso.textContent = MSG_TOQUE_DE_NOVO;
+                    return;
+                }
                 baixar(arquivo);
                 aviso.textContent = MSG_SEM_COMPARTILHAR;
             });
     }
 
     btnBaixar.addEventListener('click', function () {
-        if (!foto) return;
+        if (!podeExportar()) return;
         aviso.textContent = '';
         obterArquivo(baixar);
     });
 
     btnCompartilhar.addEventListener('click', function () {
-        if (!foto) return;
+        if (!podeExportar()) return;
         aviso.textContent = '';
         obterArquivo(compartilhar);
     });

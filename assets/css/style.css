@@ -147,6 +147,7 @@ ul { margin: 0; padding: 0; }
 .marca__texto small { font-size: .78rem; color: var(--ouro-claro); }
 
 .menu ul { display: flex; align-items: center; gap: 1.6rem; list-style: none; }
+.menu a { white-space: nowrap; }
 .menu a:not(.btn) {
     color: var(--branco);
     text-decoration: none;
@@ -159,7 +160,7 @@ ul { margin: 0; padding: 0; }
 
 .menu-botao { display: none; }
 
-@media (max-width: 860px) {
+@media (max-width: 1000px) {
     .menu-botao {
         display: inline-flex;
         align-items: center;
@@ -860,9 +861,9 @@ dialog.modal p { margin: 0; color: var(--suave); }
 #avatar-canvas:active { cursor: grabbing; }
 .avatar[data-formato="stories"] .avatar__palco { max-width: 300px; margin-inline: auto; width: 100%; }
 
-.avatar__ajustes { display: flex; align-items: center; gap: .75rem; }
+.avatar__ajustes { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; }
 .avatar__ajustes label { font-weight: 600; color: var(--azul); }
-.avatar__ajustes input[type="range"] { flex: 1; accent-color: var(--azul); }
+.avatar__ajustes input[type="range"] { flex: 1 1 8rem; min-width: 0; accent-color: var(--azul); }
 .avatar__btn-claro { background: var(--papel); color: var(--azul); border-color: var(--linha); }
 .avatar__btn-claro:hover { border-color: var(--azul); }
 
