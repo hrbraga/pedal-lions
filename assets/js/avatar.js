@@ -15,10 +15,22 @@
     var zoomRange = document.getElementById('avatar-zoom');
     var btnCentralizar = document.getElementById('avatar-centralizar');
     var btnBaixar = document.getElementById('avatar-baixar');
+    var btnCompartilhar = document.getElementById('avatar-compartilhar');
     var aviso = document.getElementById('avatar-aviso');
     var abas = raiz.querySelectorAll('[role="tab"]');
 
     var MSG_ERRO_FOTO = 'Não conseguimos abrir essa imagem. Tente uma foto em JPG ou PNG.';
+    var MSG_SEM_COMPARTILHAR = 'Não deu para compartilhar daqui. Baixamos a imagem para você postar.';
+    var TEXTO_COMPARTILHAR = 'Eu vou! 🚴 2º Pedal Solidário – 14/03/2027';
+
+    var podeCompartilhar = false;
+    try {
+        podeCompartilhar = !!(navigator.canShare &&
+            navigator.canShare({ files: [new File([''], 'x.png', { type: 'image/png' })] }));
+    } catch (err) {
+        podeCompartilhar = false;
+    }
+    btnCompartilhar.hidden = !podeCompartilhar;
 
     var formatoAtual = 'feed';
     var foto = null;              // canvas com a foto já reduzida
@@ -61,6 +73,7 @@
 
     var pedido = 0;
     function redesenhar() {
+        prepararArquivoEmSeguida();
         if (pedido) return;
         pedido = requestAnimationFrame(function () {
             pedido = 0;
@@ -68,11 +81,33 @@
         });
     }
 
+    /*
+     * Arquivo final pré-gerado: o Safari do iPhone só aceita navigator.share() logo após o toque,
+     * e gerar o PNG é assíncrono. Então o PNG é refeito ~0,4 s depois de cada ajuste e o clique
+     * em Compartilhar já encontra o arquivo pronto.
+     */
+    var arquivoPronto = null;
+    var versaoArquivo = 0;
+    var timerArquivo = 0;
+    function prepararArquivoEmSeguida() {
+        arquivoPronto = null;
+        versaoArquivo++;
+        clearTimeout(timerArquivo);
+        if (!foto) return;
+        var versao = versaoArquivo;
+        timerArquivo = setTimeout(function () {
+            gerarArquivo().then(function (arquivo) {
+                if (versao === versaoArquivo) arquivoPronto = arquivo;
+            }, function () { /* gera de novo no clique */ });
+        }, 400);
+    }
+
     function atualizarBotoes() {
         var semFoto = !foto;
         zoomRange.disabled = semFoto;
         btnCentralizar.disabled = semFoto;
         btnBaixar.disabled = semFoto;
+        btnCompartilhar.disabled = semFoto;
         zoomRange.value = semFoto ? 1 : estadoDe(formatoAtual).zoom;
     }
 
@@ -274,6 +309,59 @@
     btnCentralizar.addEventListener('click', function () {
         if (!foto) return;
         definirEstado(G.estadoInicial(dimsFoto(), saidaDe(formatoAtual), buracos[formatoAtual] || null));
+    });
+
+    /* ---------- Exportar: compartilhar e baixar ---------- */
+    function gerarArquivo() {
+        var formato = formatoAtual;
+        var s = saidaDe(formato);
+        var c = document.createElement('canvas');
+        c.width = s.w;
+        c.height = s.h;
+        desenhar(c.getContext('2d'), formato);
+        return new Promise(function (resolve, reject) {
+            c.toBlob(function (blob) {
+                if (!blob) { reject(new Error('falha ao gerar a imagem')); return; }
+                resolve(new File([blob], G.FORMATOS[formato].arquivo, { type: 'image/png' }));
+            }, 'image/png');
+        });
+    }
+
+    function baixar(arquivo) {
+        var url = URL.createObjectURL(arquivo);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = arquivo.name;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    }
+
+    function obterArquivo(usar) {
+        if (arquivoPronto) usar(arquivoPronto); // síncrono: mantém o "toque" válido no iPhone
+        else gerarArquivo().then(usar);
+    }
+
+    function compartilhar(arquivo) {
+        navigator.share({ files: [arquivo], title: '2º Pedal Solidário', text: TEXTO_COMPARTILHAR })
+            .catch(function (err) {
+                if (err && err.name === 'AbortError') return; // a pessoa cancelou
+                baixar(arquivo);
+                aviso.textContent = MSG_SEM_COMPARTILHAR;
+            });
+    }
+
+    btnBaixar.addEventListener('click', function () {
+        if (!foto) return;
+        aviso.textContent = '';
+        obterArquivo(baixar);
+    });
+
+    btnCompartilhar.addEventListener('click', function () {
+        if (!foto) return;
+        aviso.textContent = '';
+        obterArquivo(compartilhar);
     });
 
     atualizarBotoes();
