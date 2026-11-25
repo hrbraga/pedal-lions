@@ -816,3 +816,61 @@ dialog.modal p { margin: 0; color: var(--suave); }
 }
 
 .nota-valores { margin: 1.25rem 0 0; color: var(--suave); font-size: .95rem; max-width: 62ch; }
+
+/* ==========================================================================
+   Avatar "Eu vou!"
+   ========================================================================== */
+.avatar {
+    max-width: 440px;
+    margin-inline: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+    text-align: center;
+}
+.avatar__passo .btn { width: 100%; }
+
+.avatar__abas { display: flex; gap: .5rem; }
+.avatar__abas [role="tab"] {
+    flex: 1;
+    font-family: var(--fonte-titulo);
+    font-weight: 700;
+    font-size: 1.15rem;
+    padding: .6rem 1rem;
+    border: 2px solid var(--azul);
+    border-radius: var(--raio);
+    background: var(--branco);
+    color: var(--azul);
+    cursor: pointer;
+}
+.avatar__abas [role="tab"][aria-selected="true"] { background: var(--ouro); border-color: var(--ouro); }
+
+.avatar__palco { position: relative; }
+#avatar-canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: var(--raio);
+    background: var(--papel);
+    box-shadow: 0 6px 24px rgba(10, 30, 77, .18);
+    touch-action: none;
+    cursor: grab;
+}
+#avatar-canvas:active { cursor: grabbing; }
+.avatar[data-formato="stories"] .avatar__palco { max-width: 300px; margin-inline: auto; width: 100%; }
+
+.avatar__ajustes { display: flex; align-items: center; gap: .75rem; }
+.avatar__ajustes label { font-weight: 600; color: var(--azul); }
+.avatar__ajustes input[type="range"] { flex: 1; accent-color: var(--azul); }
+.avatar__btn-claro { background: var(--papel); color: var(--azul); border-color: var(--linha); }
+.avatar__btn-claro:hover { border-color: var(--azul); }
+
+.avatar__acoes { display: flex; flex-wrap: wrap; gap: .75rem; }
+.avatar__acoes .btn { flex: 1 1 10rem; }
+
+.avatar .btn:disabled, .avatar input:disabled { opacity: .45; cursor: not-allowed; }
+
+.avatar__aviso { margin: 0; min-height: 1.6em; color: var(--erro); font-weight: 500; }
+.avatar__aviso:empty { min-height: 0; }
+.avatar__privacidade { margin: 0; color: var(--suave); font-size: .95rem; }

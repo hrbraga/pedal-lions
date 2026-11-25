@@ -41,5 +41,8 @@
 </footer>
 
 <script src="<?= e(asset('assets/js/main.js')) ?>"></script>
+<?php foreach (($scripts_extra ?? []) as $script): ?>
+<script src="<?= e(asset($script)) ?>"></script>
+<?php endforeach; ?>
 </body>
 </html>

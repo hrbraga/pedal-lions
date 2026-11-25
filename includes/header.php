@@ -14,6 +14,7 @@ $menu = [
     'programacao' => ['programacao.php', 'Programação'],
     'regulamento' => ['regulamento.php', 'Regulamento'],
     'faq'         => ['faq.php',         'FAQ'],
+    'avatar'      => ['avatar.php',      'Eu vou!'],
 ];
 ?>
 <!DOCTYPE html>
