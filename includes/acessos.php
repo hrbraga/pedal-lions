@@ -92,3 +92,22 @@ function acesso_erro_remover(int $meu_id, int $alvo_id, bool $alvo_total, int $q
     }
     return null;
 }
+
+/**
+ * Proteção de quem tem acesso total: só outro administrador com acesso total pode redefinir a senha,
+ * mudar o acesso ou remover essa pessoa, e só ele pode dar acesso total a alguém.
+ * $eu_total: quem está fazendo; $alvo_total: como o alvo está hoje (false ao criar); $novo_total: o que foi pedido.
+ */
+function acesso_erro_total(bool $eu_total, bool $alvo_total, bool $novo_total): ?string
+{
+    if ($eu_total) {
+        return null;
+    }
+    if ($alvo_total) {
+        return 'Só um administrador com acesso total pode alterar, redefinir a senha ou remover outro com acesso total.';
+    }
+    if ($novo_total) {
+        return 'Só um administrador com acesso total pode dar acesso total.';
+    }
+    return null;
+}

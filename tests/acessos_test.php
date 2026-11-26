@@ -44,5 +44,15 @@ confere('remover: único administrador', acesso_erro_remover(2, 1, false, 0, 1),
 confere('remover: último total', acesso_erro_remover(2, 1, true, 1, 2), 'É preciso manter pelo menos um administrador com acesso total.');
 confere('remover: permitido', acesso_erro_remover(2, 3, false, 1, 3), null);
 
+// Só quem tem acesso total mexe em quem tem acesso total (senha, acesso, remoção) ou dá acesso total
+$sobre_total = 'Só um administrador com acesso total pode alterar, redefinir a senha ou remover outro com acesso total.';
+$dar_total   = 'Só um administrador com acesso total pode dar acesso total.';
+confere('total: limitado mexe em quem tem total', acesso_erro_total(false, true, false), $sobre_total);
+confere('total: limitado mexe em total mantendo total', acesso_erro_total(false, true, true), $sobre_total);
+confere('total: limitado dá total', acesso_erro_total(false, false, true), $dar_total);
+confere('total: limitado mexe em limitado', acesso_erro_total(false, false, false), null);
+confere('total: quem tem total pode tudo', acesso_erro_total(true, true, false), null);
+confere('total: quem tem total dá total', acesso_erro_total(true, false, true), null);
+
 echo $falhas ? "\n$falhas falha(s)\n" : "\nTudo certo\n";
 exit($falhas ? 1 : 0);

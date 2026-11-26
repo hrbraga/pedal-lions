@@ -3,6 +3,7 @@ require __DIR__ . '/_bootstrap.php';
 admin_exigir('admins');
 
 $meu_id = (int) $_SESSION['admin_id'];
+$eu_total = admin_acesso()['total']; // só quem tem acesso total mexe em quem tem acesso total
 $erros  = [];
 $novo_usuario = '';
 $novo_acesso  = ['total' => false, 'paginas' => []];
@@ -15,12 +16,17 @@ function acesso_do_post(): array
     return ['total' => $total, 'paginas' => $total ? [] : $paginas];
 }
 
-/** Caixas "Acesso total" + uma por página. $id_base deixa os ids únicos quando há vários formulários. */
-function caixas_acesso(string $id_base, bool $total, array $paginas): string
+/**
+ * Caixas "Acesso total" + uma por página. $id_base deixa os ids únicos quando há vários formulários.
+ * $pode_dar_total = false (quem está usando não tem acesso total): a caixa "Acesso total" aparece desabilitada.
+ */
+function caixas_acesso(string $id_base, bool $total, array $paginas, bool $pode_dar_total): string
 {
     $h = '<fieldset class="adm-checks"><legend>Páginas que pode acessar</legend>';
     $h .= '<label class="adm-checks__total"><input type="checkbox" name="acesso_total" value="1"' . ($total ? ' checked' : '')
-        . '> Acesso total <small>(todas as páginas, inclusive as que forem criadas depois)</small></label>';
+        . ($pode_dar_total ? '' : ' disabled') . '> Acesso total <small>('
+        . ($pode_dar_total ? 'todas as páginas, inclusive as que forem criadas depois' : 'só quem tem acesso total pode dar')
+        . ')</small></label>';
     foreach (ACESSO_PAGINAS as $chave => $p) {
         $h .= '<label><input type="checkbox" name="paginas[]" value="' . e($chave) . '" id="' . e($id_base . '-' . $chave) . '"'
             . (in_array($chave, $paginas, true) ? ' checked' : '') . '> ' . e($p['rotulo']) . '</label>';
@@ -58,6 +64,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (!$novo_acesso['total'] && !$novo_acesso['paginas']) {
                     $erros[] = 'Marque pelo menos uma página ou "Acesso total".';
                 }
+                if ($e_total = acesso_erro_total($eu_total, false, $novo_acesso['total'])) {
+                    $erros[] = $e_total;
+                }
 
                 if (!$erros) {
                     try {
@@ -87,20 +96,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $confirmar = (string) ($_POST['confirmar'] ?? '');
                 $erros = erros_senha($senha, $confirmar);
 
-                $st = $pdo->prepare('SELECT usuario FROM admins WHERE id = :id');
+                $st = $pdo->prepare('SELECT usuario, acesso_total FROM admins WHERE id = :id');
                 $st->execute([':id' => $id]);
-                $alvo = $st->fetchColumn();
+                $alvo = $st->fetch();
 
                 if ($alvo === false) {
                     $erros[] = 'Administrador não encontrado.';
                 } elseif ($id === $meu_id) {
                     $erros[] = 'Para trocar a sua própria senha, use a página "Minha conta".';
+                } elseif ($e_total = acesso_erro_total($eu_total, (bool) $alvo['acesso_total'], false)) {
+                    $erros[] = $e_total;
                 }
 
                 if (!$erros) {
                     $pdo->prepare('UPDATE admins SET senha_hash = :h WHERE id = :id')
                         ->execute([':h' => password_hash($senha, PASSWORD_DEFAULT), ':id' => $id]);
-                    flash('ok', 'Senha de "' . $alvo . '" redefinida. Se essa pessoa estiver logada, precisará entrar de novo.');
+                    flash('ok', 'Senha de "' . $alvo['usuario'] . '" redefinida. Se essa pessoa estiver logada, precisará entrar de novo.');
                     header('Location: administradores.php');
                     exit;
                 }
@@ -124,10 +135,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($alvo === null) {
                     $erro = 'Administrador não encontrado.';
                 } elseif ($acao === 'acesso') {
-                    $novo_acesso = acesso_do_post();
-                    $erro = acesso_erro_alterar($meu_id, $id, (bool) $alvo['acesso_total'], $novo_acesso['total'], $qtd_total);
+                    // variável própria: um erro aqui não deve marcar caixas no formulário "Novo administrador"
+                    $acesso_pedido = acesso_do_post();
+                    $erro = acesso_erro_total($eu_total, (bool) $alvo['acesso_total'], $acesso_pedido['total'])
+                        ?? acesso_erro_alterar($meu_id, $id, (bool) $alvo['acesso_total'], $acesso_pedido['total'], $qtd_total);
                 } else {
-                    $erro = acesso_erro_remover($meu_id, $id, (bool) $alvo['acesso_total'], $qtd_total, count($todos));
+                    $erro = acesso_erro_total($eu_total, (bool) $alvo['acesso_total'], false)
+                        ?? acesso_erro_remover($meu_id, $id, (bool) $alvo['acesso_total'], $qtd_total, count($todos));
                 }
 
                 if ($erro !== null) {
@@ -137,8 +151,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 if ($acao === 'acesso') {
                     $pdo->prepare('UPDATE admins SET acesso_total = :t, paginas = :p WHERE id = :id')->execute([
-                        ':t'  => $novo_acesso['total'] ? 1 : 0,
-                        ':p'  => $novo_acesso['total'] ? '' : acesso_paginas_texto($novo_acesso['paginas']),
+                        ':t'  => $acesso_pedido['total'] ? 1 : 0,
+                        ':p'  => $acesso_pedido['total'] ? '' : acesso_paginas_texto($acesso_pedido['paginas']),
                         ':id' => $id,
                     ]);
                     flash('ok', 'Acesso de "' . $alvo['usuario'] . '" atualizado.');
@@ -170,7 +184,9 @@ try {
     $erros[] = 'Não foi possível carregar a lista de administradores.';
 }
 
-$outros = array_values(array_filter($admins, fn($a) => (int) $a['id'] !== $meu_id));
+// Pode mexer em $a? Nunca em si mesmo (há Minha conta); em quem tem acesso total, só se eu também tiver.
+$posso_mexer = fn(array $a): bool => (int) $a['id'] !== $meu_id && ($eu_total || !(bool) $a['acesso_total']);
+$outros = array_values(array_filter($admins, $posso_mexer));
 
 $titulo_admin = 'Administradores';
 $menu_ativo = 'admins';
@@ -185,7 +201,8 @@ require __DIR__ . '/_topo.php';
     </div>
 <?php endif; ?>
 
-<p>Cada administrador só vê as páginas liberadas para ele. Quem tem a página Administradores pode criar pessoas e mudar o acesso dos outros.</p>
+<p>Cada administrador só vê as páginas liberadas para ele. Quem tem a página Administradores pode criar pessoas e mudar o acesso dos outros.
+    Quem tem acesso total só pode ser alterado, ter a senha redefinida ou ser removido por outro administrador com acesso total.</p>
 
 <div class="adm-rolagem">
     <table class="adm-tabela">
@@ -194,7 +211,8 @@ require __DIR__ . '/_topo.php';
         <?php foreach ($admins as $a):
             $a_total   = (bool) $a['acesso_total'];
             $a_paginas = acesso_paginas_ler((string) $a['paginas']);
-            $eu        = (int) $a['id'] === $meu_id; ?>
+            $eu        = (int) $a['id'] === $meu_id;
+            $mexer     = $posso_mexer($a); ?>
             <tr data-usuario="<?= e($a['usuario']) ?>">
                 <td>
                     <?= e($a['usuario']) ?>
@@ -203,19 +221,19 @@ require __DIR__ . '/_topo.php';
                 <td class="acesso"><?= e(acesso_descricao($a_total, $a_paginas)) ?></td>
                 <td><?= e(data_hora_br($a['criado_em'])) ?></td>
                 <td class="acoes">
-                    <?php if (!$eu): ?>
+                    <?php if ($mexer): ?>
                         <details class="adm-editar-acesso" data-editar="<?= e($a['usuario']) ?>">
                             <summary class="adm-btn adm-btn--claro adm-btn--mini">Editar acesso</summary>
                             <form method="post" class="adm-form">
                                 <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                                 <input type="hidden" name="acao" value="acesso">
                                 <input type="hidden" name="id" value="<?= (int) $a['id'] ?>">
-                                <?= caixas_acesso('acesso-' . (int) $a['id'], $a_total, $a_paginas) ?>
+                                <?= caixas_acesso('acesso-' . (int) $a['id'], $a_total, $a_paginas, $eu_total) ?>
                                 <button class="adm-btn adm-btn--mini" type="submit">Salvar acesso</button>
                             </form>
                         </details>
                     <?php endif; ?>
-                    <?php if (!$eu && count($admins) > 1): ?>
+                    <?php if ($mexer && count($admins) > 1): ?>
                         <form method="post" onsubmit="return confirm('Remover o administrador <?= e(addslashes($a['usuario'])) ?>? Ele perde o acesso imediatamente.');">
                             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                             <input type="hidden" name="acao" value="remover">
@@ -242,7 +260,7 @@ require __DIR__ . '/_topo.php';
             <input type="password" id="novo-senha" name="senha" required autocomplete="new-password">
             <label for="novo-confirmar">Confirmar senha</label>
             <input type="password" id="novo-confirmar" name="confirmar" required autocomplete="new-password">
-            <?= caixas_acesso('novo', $novo_acesso['total'], $novo_acesso['paginas']) ?>
+            <?= caixas_acesso('novo', $novo_acesso['total'], $novo_acesso['paginas'], $eu_total) ?>
             <button class="adm-btn" type="submit">Criar administrador</button>
         </form>
     </section>
