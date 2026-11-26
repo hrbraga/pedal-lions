@@ -112,7 +112,9 @@ confere('hora inválida', isset($erros('programacao.0.hora', '7h30')['programaca
 confere('hora 24:00 inválida', isset($erros('programacao.0.hora', '24:00')['programacao.0.hora']), true);
 confere('sem categorias', isset($erros('categorias', [])['categorias']), true);
 confere('sem tamanhos', isset($erros('camiseta.tamanhos', [])['camiseta.tamanhos']), true);
-confere('tamanho repetido', isset($erros('camiseta.tamanhos', ['P', 'p'])['camiseta.tamanhos']), true);
+confere('tamanho com 5 caracteres não cabe no banco (VARCHAR 4)', isset($erros('camiseta.tamanhos', ['XXXGG'])['camiseta.tamanhos']), true);
+confere('tamanho com 4 caracteres', $erros('camiseta.tamanhos', ['XXGG']), []);
+confere('tamanho repetido',isset($erros('camiseta.tamanhos', ['P', 'p'])['camiseta.tamanhos']), true);
 confere('pergunta sem resposta', isset($erros('faq.0.r', '')['faq.0.r']), true);
 
 $tamanhos = $valida;

@@ -5,14 +5,24 @@
 function db(): PDO
 {
     static $pdo = null;
+    static $falha = null; // se a conexão falhou nesta requisição, não tenta de novo (cada tentativa pode demorar)
+    if ($falha !== null) {
+        throw $falha;
+    }
     if ($pdo === null) {
         $c = require __DIR__ . '/../config/banco.php';
         $dsn = 'mysql:host=' . $c['host'] . ';dbname=' . $c['nome'] . ';charset=utf8mb4';
-        $pdo = new PDO($dsn, $c['usuario'], $c['senha'], [
-            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-            PDO::ATTR_EMULATE_PREPARES   => false,
-        ]);
+        try {
+            $pdo = new PDO($dsn, $c['usuario'], $c['senha'], [
+                PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                PDO::ATTR_EMULATE_PREPARES   => false,
+                PDO::ATTR_TIMEOUT            => 3, // banco travado não pode prender o site: desiste em 3 s
+            ]);
+        } catch (PDOException $e) {
+            $falha = $e;
+            throw $e;
+        }
         esquema_atualizar($pdo);
     }
     return $pdo;

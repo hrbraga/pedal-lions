@@ -35,9 +35,30 @@
         });
     }
 
-    form.addEventListener('submit', function () {
+    var botaoSalvar = form.querySelector('[data-salvar]');
+
+    form.addEventListener('submit', function (ev) {
+        // Clique duplo: o segundo envio veria a versão que o primeiro acabou de gravar e acusaria um conflito falso
+        if (form.getAttribute('data-enviando')) {
+            ev.preventDefault();
+            return;
+        }
+        form.setAttribute('data-enviando', '1');
+        if (botaoSalvar) {
+            botaoSalvar.disabled = true;
+            botaoSalvar.textContent = 'Salvando…';
+        }
         renumerar();
         alterado = false;
+    });
+
+    // Voltando pelo botão "voltar" do navegador, a página pode vir da memória com o botão travado
+    window.addEventListener('pageshow', function () {
+        form.removeAttribute('data-enviando');
+        if (botaoSalvar) {
+            botaoSalvar.disabled = false;
+            botaoSalvar.textContent = 'Salvar alterações';
+        }
     });
 
     form.addEventListener('click', function (ev) {

@@ -78,7 +78,8 @@ function evento_versoes(PDO $pdo, int $limite = EVENTO_VERSOES_MAX): array
 /** Grava uma nova versão, apaga as que passarem das 50 mais recentes e devolve o id. */
 function evento_salvar(PDO $pdo, array $dados, string $usuario, ?int $restaurada_de = null): int
 {
-    $json = json_encode($dados, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+    // Sem JSON_UNESCAPED_UNICODE: acentos e emojis viram \uXXXX, então a gravação funciona com qualquer charset do banco
+    $json = json_encode($dados, JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
     $st = $pdo->prepare('INSERT INTO evento_versoes (dados, salvo_por, restaurada_de) VALUES (:d, :u, :r)');
     $st->execute([':d' => $json, ':u' => $usuario, ':r' => $restaurada_de]);
     $id = (int) $pdo->lastInsertId();

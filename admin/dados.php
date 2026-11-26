@@ -37,11 +37,12 @@ if ($pdo && $_SERVER['REQUEST_METHOD'] === 'POST') {
         header('Location: dados.php');
         exit;
     }
-    $usuario  = (string) ($_SESSION['admin_usuario'] ?? 'painel');
-    $inscritos = inscritos_por_categoria($pdo);
-    $trava = (int) $pdo->query("SELECT GET_LOCK('" . TRAVA_DADOS . "', 10)")->fetchColumn() === 1;
+    $usuario = (string) ($_SESSION['admin_usuario'] ?? 'painel');
+    $trava   = false;
 
     try {
+        $inscritos = inscritos_por_categoria($pdo);
+        $trava = (int) $pdo->query("SELECT GET_LOCK('" . TRAVA_DADOS . "', 10)")->fetchColumn() === 1;
         if (!$trava) {
             $erros['_'] = 'Outra gravação está em andamento. Tente de novo em instantes.';
             $form = $_POST;
@@ -91,6 +92,12 @@ if ($pdo && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
         }
+    } catch (Throwable $e) {
+        // Qualquer falha inesperada: nada foi gravado e o que a pessoa digitou volta para a tela
+        error_log('Pedal Solidário – erro ao salvar Dados do Evento: ' . $e->getMessage());
+        $erros = ['_' => 'Não foi possível salvar agora. Nada foi gravado; o que você digitou continua abaixo. Tente de novo em instantes.'
+                       . (banco_debug() ? ' Detalhe técnico: ' . $e->getMessage() : '')];
+        $form = $_POST;
     } finally {
         if ($trava) {
             $pdo->query("SELECT RELEASE_LOCK('" . TRAVA_DADOS . "')");
@@ -128,6 +135,28 @@ if ($form !== null) {
 }
 
 /* ---------- Auxiliares de exibição ---------- */
+
+/**
+ * Para a lista de erros do topo: 'categorias.1.valor' → ['categorias', 'Categorias, item 2'].
+ * Devolve a âncora da seção e um texto que diz onde está o campo.
+ */
+function onde_esta_o_erro(string $caminho): array
+{
+    $secoes = [
+        'geral' => ['geral', 'Geral'], 'inscricoes' => ['inscricoes', 'Inscrições'], 'contato' => ['contatos', 'Contatos'],
+        'camiseta' => ['camiseta', 'Camiseta'], 'categorias' => ['categorias', 'Categorias'],
+        'premiacoes' => ['premiacoes', 'Premiações'], 'rotas' => ['rotas', 'Rotas'], 'programacao' => ['programacao', 'Programação'],
+        'faq' => ['faq', 'Perguntas frequentes'], 'patrocinadores' => ['patrocinadores', 'Patrocinadores'],
+    ];
+    $partes = explode('.', $caminho);
+    [$ancora, $rotulo] = $secoes[$partes[0]] ?? ['geral', 'Geral'];
+    if ($partes[0] === 'patrocinadores' && count($partes) > 2) {
+        $rotulo .= ' (' . implode('.', array_slice($partes, 1, -1)) . ')';
+    } elseif (isset($partes[1]) && ctype_digit($partes[1])) {
+        $rotulo .= ', item ' . ((int) $partes[1] + 1);
+    }
+    return [$ancora, $rotulo];
+}
 
 /** 'faq.3.p' → 'faq[3][p]' */
 function nome_de(string $caminho): string
@@ -247,7 +276,7 @@ function item_faq(array $f, array $erros, string $i): string
 function item_tamanho(array $f, array $erros, string $i): string
 {
     return '<div class="adm-item adm-item--linha" data-item>'
-        . adm_campo($f, $erros, "camiseta.tamanhos.$i", 'Tamanho', 'text', 'maxlength="5"')
+        . adm_campo($f, $erros, "camiseta.tamanhos.$i", 'Tamanho', 'text', 'maxlength="4"')
         . botoes_item() . '</div>';
 }
 
@@ -297,7 +326,13 @@ require __DIR__ . '/_topo.php';
         <?php if (isset($erros['_'])): ?>
             <?= e($erros['_']) ?>
         <?php else: ?>
-            Nada foi salvo. Confira os campos marcados em vermelho.
+            <strong>Nada foi salvo.</strong> Corrija os pontos abaixo (também marcados em vermelho em cada campo):
+            <ul class="adm-erros-lista">
+                <?php foreach ($erros as $caminho => $msg): ?>
+                    <?php [$ancora, $onde] = onde_esta_o_erro((string) $caminho); ?>
+                    <li><a href="#<?= e($ancora) ?>"><?= e($onde) ?></a>: <?= e($msg) ?></li>
+                <?php endforeach; ?>
+            </ul>
         <?php endif; ?>
     </div>
 <?php endif; ?>

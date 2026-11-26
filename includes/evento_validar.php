@@ -320,8 +320,8 @@ function evento_validar(array $entrada, array $atual, array $categorias_com_insc
         if ($t === '') {
             continue;
         }
-        if (mb_strlen($t) > 5) {
-            $erros['camiseta.tamanhos'] = 'Cada tamanho pode ter no máximo 5 caracteres.';
+        if (mb_strlen($t) > 4) {
+            $erros['camiseta.tamanhos'] = 'Cada tamanho pode ter no máximo 4 caracteres.';
         } elseif (in_array($t, $tamanhos, true)) {
             $erros['camiseta.tamanhos'] = "O tamanho $t está repetido.";
         }

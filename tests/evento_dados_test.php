@@ -53,6 +53,10 @@ if (!$pdo) {
     }
     confere('guarda só as 50 mais recentes', (int) $pdo->query('SELECT COUNT(*) FROM evento_versoes')->fetchColumn(), 50);
     confere('a mais recente sobrevive', evento_versao_atual($pdo)['dados'], ['n' => 50]);
+    $eid = evento_salvar($pdo, ['faq' => [['p' => 'Vai ter café? 🚴', 'r' => 'Sim']]], 'teste');
+    $cru = (string) $pdo->query('SELECT dados FROM evento_versoes WHERE id = ' . (int) $eid)->fetchColumn();
+    confere('JSON gravado só com ASCII (funciona com qualquer charset do banco)', preg_match('/[^\x00-\x7F]/', $cru), 0);
+    confere('acento e emoji voltam intactos', evento_versao($pdo, $eid)['dados']['faq'][0]['p'], 'Vai ter café? 🚴');
     $pdo->exec("DELETE FROM evento_versoes WHERE salvo_por = 'teste'");
     confere('sem versões, atual é null', evento_versao_atual($pdo), null);
 }
