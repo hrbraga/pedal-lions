@@ -194,3 +194,28 @@ code { background: #E8ECF6; padding: .1rem .35rem; border-radius: 4px; font-size
 .adm-editar-acesso summary { list-style: none; cursor: pointer; display: inline-block; }
 .adm-editar-acesso summary::-webkit-details-marker { display: none; }
 .adm-editar-acesso[open] form { min-width: 16rem; margin-top: .5rem; text-align: left; white-space: normal; }
+
+/* Financeiro */
+.adm-cards--3 { grid-template-columns: repeat(3, 1fr); }
+@media (max-width: 700px) { .adm-cards--3 { grid-template-columns: 1fr; } }
+.adm-cards--3 .adm-card { border-left-color: var(--azul); }
+.adm-cards--3 .adm-card--entrada { border-left-color: var(--ok); }
+.adm-cards--3 .adm-card--saida { border-left-color: var(--erro); }
+.adm-fin-filtro { grid-template-columns: 1fr 1fr 2fr; }
+.adm-fin-tipo { display: flex; gap: 1.5rem; margin: .25rem 0 .5rem; }
+.adm-form .adm-fin-tipo label { display: flex; align-items: center; gap: .4rem; margin: 0; font-weight: 600; }
+.adm-form .adm-fin-tipo input { width: auto; }
+.adm-form select { width: 100%; font: inherit; padding: .65rem .8rem; border: 2px solid var(--linha); border-radius: var(--raio); background: #fff; }
+.adm-link-cancelar { display: inline-block; margin-top: .75rem; }
+.adm-balancete { background: #fff; }
+.adm-balancete__titulo th { background: var(--papel); text-align: left; }
+.adm-balancete__total th { border-top: 2px solid var(--linha); }
+.adm-balancete__saldo th { font-size: 1.1rem; border-top: 3px double var(--azul); }
+.adm-fin-entrada { color: var(--ok); white-space: nowrap; }
+.adm-fin-saida { color: var(--erro); white-space: nowrap; }
+.adm-fin-auto td, .adm-tabela .adm-fin-auto td.acoes { background: #F7F9FC; }
+.adm-fin-inativa td { opacity: .6; }
+.adm-fin-renomear { display: flex; gap: .4rem; align-items: center; margin: 0; }
+.adm-fin-renomear input { flex: 1; min-width: 8rem; font: inherit; padding: .35rem .5rem; border: 1px solid var(--linha); border-radius: var(--raio); }
+.adm-fin-nova-cat { display: flex; gap: .5rem; margin: .5rem 0 1.5rem; }
+.adm-fin-nova-cat input { flex: 1; font: inherit; padding: .45rem .6rem; border: 2px solid var(--linha); border-radius: var(--raio); }

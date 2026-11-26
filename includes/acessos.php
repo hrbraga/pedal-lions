@@ -9,6 +9,7 @@ const ACESSO_PAGINAS = [
     'inscritos' => ['rotulo' => 'Inscritos', 'url' => 'painel.php'],
     'cupons'    => ['rotulo' => 'Cupons', 'url' => 'cupons.php'],
     'dados'     => ['rotulo' => 'Dados do Evento', 'url' => 'dados.php'],
+    'financeiro' => ['rotulo' => 'Financeiro', 'url' => 'financeiro.php'],
     'admins'    => ['rotulo' => 'Administradores', 'url' => 'administradores.php'],
     'exportar'  => ['rotulo' => 'Exportar CSV', 'url' => 'exportar.php'],
 ];
