@@ -41,8 +41,8 @@
         var s = escalaBase(foto, saida) * zoom;
         return {
             zoom: zoom,
-            x: Math.round(entre(estado.x, saida.w - foto.w * s, 0)),
-            y: Math.round(entre(estado.y, saida.h - foto.h * s, 0))
+            x: entre(estado.x, saida.w - foto.w * s, 0),
+            y: entre(estado.y, saida.h - foto.h * s, 0)
         };
     }
 

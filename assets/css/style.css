@@ -831,6 +831,9 @@ dialog.modal p { margin: 0; color: var(--suave); }
     text-align: center;
 }
 .avatar__passo .btn { width: 100%; }
+/* o campo de arquivo fica escondido: o foco do teclado aparece no botão "Escolher foto" */
+#avatar-arquivo:focus-visible + label { outline: 3px solid var(--ouro); outline-offset: 3px; }
+.avatar__instrucoes { margin: -.25rem 0 0; color: var(--suave); font-size: .95rem; }
 
 .avatar__abas { display: flex; gap: .5rem; }
 .avatar__abas [role="tab"] {

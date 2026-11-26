@@ -23,14 +23,21 @@ require __DIR__ . '/includes/header.php';
             </div>
 
             <div class="avatar__abas" role="tablist" aria-label="Formato da imagem">
-                <button type="button" role="tab" data-formato="feed" aria-selected="true">Feed</button>
-                <button type="button" role="tab" data-formato="stories" aria-selected="false">Stories</button>
+                <button type="button" role="tab" id="avatar-aba-feed" data-formato="feed"
+                        aria-selected="true" aria-controls="avatar-painel" tabindex="0">Feed</button>
+                <button type="button" role="tab" id="avatar-aba-stories" data-formato="stories"
+                        aria-selected="false" aria-controls="avatar-painel" tabindex="-1">Stories</button>
             </div>
 
-            <div class="avatar__palco">
+            <div id="avatar-painel" class="avatar__palco" role="tabpanel" aria-labelledby="avatar-aba-feed">
                 <canvas id="avatar-canvas" width="1080" height="1080" tabindex="0"
-                        aria-label="Prévia: arraste para posicionar, use + e − para zoom"></canvas>
+                        aria-label="Prévia da sua foto com a moldura" aria-describedby="avatar-instrucoes"></canvas>
             </div>
+
+            <p id="avatar-instrucoes" class="dica avatar__instrucoes">
+                Arraste a foto para posicionar. Para aproximar, use dois dedos, o controle de zoom ou Ctrl + roda do mouse.
+                No teclado: setas movem a foto, + e − dão zoom.
+            </p>
 
             <div class="avatar__ajustes">
                 <label for="avatar-zoom">Zoom</label>

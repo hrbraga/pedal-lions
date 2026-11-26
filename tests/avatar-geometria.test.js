@@ -1,4 +1,4 @@
-// Testes do módulo puro do avatar "Eu vou!". Rode com: node --test tests/
+// Testes do módulo puro do avatar "Eu vou!". Rode com: node --test (na raiz do projeto)
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const G = require('../assets/js/avatar-geometria.js');
@@ -53,4 +53,11 @@ test('FORMATOS tem os tamanhos e nomes do spec', () => {
     assert.equal(G.FORMATOS.stories.arquivo, 'pedal-solidario-eu-vou-stories.png');
     assert.equal(G.FORMATOS.feed.moldura, 'assets/img/avatar/moldura-1x1.png');
     assert.equal(G.FORMATOS.stories.moldura, 'assets/img/avatar/moldura-9x16.png');
+});
+
+test('mover acumula deslocamentos menores que meio pixel (arraste lento)', () => {
+    const f = { w: 2000, h: 1000 }, s = { w: 1080, h: 1080 };
+    let e = { zoom: 1, x: -540, y: 0 };
+    for (let i = 0; i < 10; i++) e = G.mover(e, 0.3, 0, f, s);
+    assert.ok(Math.abs(e.x - -537) < 1e-9, `x = ${e.x}`);
 });
