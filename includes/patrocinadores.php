@@ -1,0 +1,154 @@
+<?php
+/**
+ * Logos dos patrocinadores enviados pelo painel: conferência do arquivo, onde fica guardado e limpeza.
+ * Os envios ficam em uploads/patrocinadores/ com nome sorteado pelo site; o nome original nunca vira nome de arquivo.
+ */
+
+const PATRO_ENVIOS    = 'uploads/patrocinadores';
+const PATRO_MAX_BYTES = 2 * 1024 * 1024;
+const PATRO_PASTA_ANTIGA = 'assets/img/patrocinadores';
+
+/** Raiz do site (pasta acima de includes/). */
+function patro_raiz(): string
+{
+    return dirname(__DIR__);
+}
+
+/**
+ * Tipo real da imagem, lido do conteúdo (não da extensão): 'png', 'jpg', 'webp' ou null.
+ * getimagesize só lê o cabeçalho e funciona sem a extensão GD.
+ */
+function patro_tipo_imagem(string $caminho): ?string
+{
+    if (!is_file($caminho)) {
+        return null;
+    }
+    $info = @getimagesize($caminho);
+    if (!$info || empty($info[0]) || empty($info[1])) {
+        return null;
+    }
+    $tipos = [IMAGETYPE_PNG => 'png', IMAGETYPE_JPEG => 'jpg', IMAGETYPE_WEBP => 'webp'];
+    return $tipos[$info[2]] ?? null;
+}
+
+/** Mensagem para um envio recusado, ou null se estiver tudo certo. */
+function patro_erro_envio(int $erro_upload, int $tamanho, ?string $tipo): ?string
+{
+    if (in_array($erro_upload, [UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE], true) || $tamanho > PATRO_MAX_BYTES) {
+        return 'O logo passa de 2 MB.';
+    }
+    if ($erro_upload !== UPLOAD_ERR_OK) {
+        return 'O envio do logo falhou. Tente de novo.';
+    }
+    if ($tipo === null) {
+        return 'Use PNG, JPG ou WEBP.';
+    }
+    return null;
+}
+
+/** O caminho aponta para um logo enviado pelo painel ou para um da pasta antiga, e o arquivo existe? */
+function patro_logo_valido(string $logo, string $raiz): bool
+{
+    $enviado = (bool) preg_match('#^' . PATRO_ENVIOS . '/[a-f0-9]{16}\.(png|jpg|webp)$#', $logo);
+    $antigo  = false;
+    if (preg_match('#^' . PATRO_PASTA_ANTIGA . '/([^/\\\\]+)$#', $logo, $m)) {
+        $arq = $m[1];
+        $antigo = $arq[0] !== '.' && strpos($arq, '..') === false
+            && in_array(strtolower(pathinfo($arq, PATHINFO_EXTENSION)), ['png', 'jpg', 'jpeg', 'webp', 'svg', 'gif'], true);
+    }
+    return ($enviado || $antigo) && is_file($raiz . '/' . $logo);
+}
+
+/** Endereço do logo para usar no HTML (o nome do arquivo pode ter espaço). */
+function patro_url(string $logo): string
+{
+    return dirname($logo) . '/' . rawurlencode(basename($logo));
+}
+
+/**
+ * Guarda um logo enviado (uma entrada de $_FILES: name, tmp_name, error, size).
+ * Devolve [] se nenhum arquivo foi escolhido, ['logo' => caminho] se guardou, ou ['erro' => mensagem].
+ */
+function patro_guardar_envio(array $arquivo, string $raiz): array
+{
+    $erro = (int) ($arquivo['error'] ?? UPLOAD_ERR_NO_FILE);
+    if ($erro === UPLOAD_ERR_NO_FILE) {
+        return [];
+    }
+    $tmp     = (string) ($arquivo['tmp_name'] ?? '');
+    $existe  = $erro === UPLOAD_ERR_OK && $tmp !== '' && is_file($tmp);
+    $tamanho = max((int) ($arquivo['size'] ?? 0), $existe ? (int) filesize($tmp) : 0);
+    $tipo    = $existe ? patro_tipo_imagem($tmp) : null;
+
+    $msg = patro_erro_envio($erro, $tamanho, $tipo);
+    if ($msg !== null) {
+        return ['erro' => $msg];
+    }
+    if (!is_uploaded_file($tmp)) {
+        return ['erro' => 'O envio do logo falhou. Tente de novo.'];
+    }
+
+    $pasta = $raiz . '/' . PATRO_ENVIOS;
+    if (!is_dir($pasta) && !@mkdir($pasta, 0755, true) && !is_dir($pasta)) {
+        return ['erro' => 'Não foi possível guardar o logo no servidor.'];
+    }
+    $logo = PATRO_ENVIOS . '/' . bin2hex(random_bytes(8)) . '.' . $tipo;
+    if (!@move_uploaded_file($tmp, $raiz . '/' . $logo)) {
+        return ['erro' => 'Não foi possível guardar o logo no servidor.'];
+    }
+    @chmod($raiz . '/' . $logo, 0644);
+    return ['logo' => $logo];
+}
+
+/**
+ * Arquivos que podem ser apagados: nenhuma versão guardada os cita e têm pelo menos $idade_min segundos
+ * (os mais novos podem estar num formulário que ainda vai ser salvo).
+ * $arquivos: nome => data de modificação (timestamp).
+ */
+function patro_orfaos(array $arquivos, array $textos_versoes, int $agora, int $idade_min = 86400): array
+{
+    $orfaos = [];
+    foreach ($arquivos as $nome => $mtime) {
+        $nome = (string) $nome;
+        if ($agora - (int) $mtime < $idade_min) {
+            continue;
+        }
+        $citado = false;
+        foreach ($textos_versoes as $texto) {
+            if (strpos((string) $texto, $nome) !== false) {
+                $citado = true;
+                break;
+            }
+        }
+        if (!$citado) {
+            $orfaos[] = $nome;
+        }
+    }
+    return $orfaos;
+}
+
+/** Apaga da pasta de envios os logos que nenhuma versão usa mais. Devolve quantos apagou. */
+function patro_limpar_envios(PDO $pdo, string $raiz): int
+{
+    $pasta = $raiz . '/' . PATRO_ENVIOS;
+    if (!is_dir($pasta)) {
+        return 0;
+    }
+    $arquivos = [];
+    foreach (scandir($pasta) ?: [] as $nome) {
+        if (preg_match('/^[a-f0-9]{16}\.(png|jpg|webp)$/', $nome)) {
+            $arquivos[$nome] = (int) filemtime($pasta . '/' . $nome);
+        }
+    }
+    if (!$arquivos) {
+        return 0;
+    }
+    $textos = $pdo->query('SELECT dados FROM evento_versoes')->fetchAll(PDO::FETCH_COLUMN);
+    $apagados = 0;
+    foreach (patro_orfaos($arquivos, $textos, time()) as $nome) {
+        if (@unlink($pasta . '/' . $nome)) {
+            $apagados++;
+        }
+    }
+    return $apagados;
+}
