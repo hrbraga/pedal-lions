@@ -257,15 +257,16 @@
     function atualizarResumo() {
         var radio = form.querySelector('input[name="categoria"]:checked');
         var valorInsc = radio ? parseFloat(radio.getAttribute('data-valor')) : 0;
-        var valorCam = (queroCam && queroCam.checked) ? parseFloat(queroCam.getAttribute('data-valor')) : 0;
+        var modelo = form.querySelector('input[name="camiseta_modelo"]:checked');
+        var valorCam = (queroCam && queroCam.checked && modelo) ? parseFloat(modelo.getAttribute('data-valor')) : 0;
         var desconto = Math.min(descontoAtual, valorInsc);
 
         resumoCat.textContent = radio ? radio.getAttribute('data-nome') : 'Não escolhida';
         resumoInsc.textContent = formatarMoeda(valorInsc);
         resumoDesc.textContent = desconto > 0 ? '− ' + formatarMoeda(desconto) : formatarMoeda(0);
-        resumoCam.textContent = valorCam > 0
-            ? formatarMoeda(valorCam) + (selTamanho && selTamanho.value ? ' (' + selTamanho.value + ')' : '')
-            : 'Não';
+        resumoCam.textContent = (queroCam && queroCam.checked && modelo)
+            ? modelo.getAttribute('data-nome') + (selTamanho && selTamanho.value ? ' ' + selTamanho.value : '') + ' – ' + formatarMoeda(valorCam)
+            : (queroCam && queroCam.checked ? 'Escolha o modelo' : 'Não');
         // Taxa de administração: sobre o valor cheio da inscrição (sem desconto e sem camiseta), em centavos
         // Cupom que cobre 100% da inscrição também isenta a taxa
         var inscricaoGratis = valorInsc > 0 && (desconto + 0.005) >= valorInsc;
@@ -350,6 +351,9 @@
             if (queroCam.checked) selTamanho.focus();
         });
         selTamanho.addEventListener('change', atualizarResumo);
+        form.querySelectorAll('input[name="camiseta_modelo"]').forEach(function (r) {
+            r.addEventListener('change', atualizarResumo);
+        });
     }
     if (queroCam) {
         // Estado inicial (importante quando a página recarrega com erros de validação)

@@ -650,6 +650,14 @@ ul { margin: 0; padding: 0; }
 
 .camiseta__preco { font-family: var(--fonte-titulo); font-size: 2.2rem; font-weight: 800; color: var(--azul); margin: 0 0 .25rem; line-height: 1.1; }
 .camiseta__preco small { font-family: var(--fonte-texto); font-size: .9rem; font-weight: 500; color: var(--suave); }
+/* Preços por modelo (manga curta / manga longa) e escolha do modelo */
+.camiseta__precos { list-style: none; margin: 0 0 .25rem; padding: 0; }
+.camiseta__precos li { display: flex; justify-content: space-between; gap: 1rem; max-width: 320px; padding: .2rem 0; border-bottom: 1px solid var(--linha); }
+.camiseta__precos strong { font-family: var(--fonte-titulo); font-size: 1.35rem; color: var(--azul); }
+.camiseta__modelos { border: 0; margin: 0 0 .75rem; padding: 0; }
+.camiseta__modelos legend { font-weight: 600; margin-bottom: .35rem; }
+.opcao-modelo { display: flex; align-items: center; gap: .5rem; padding: .3rem 0; cursor: pointer; }
+.opcao-modelo small { color: var(--suave); margin-left: .25rem; }
 .camiseta__dados .campo { margin-top: .75rem; max-width: 320px; }
 .camiseta__dados .campo[hidden] { display: none; }
 

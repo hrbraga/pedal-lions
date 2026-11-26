@@ -91,6 +91,10 @@ function esquema_atualizar(PDO $pdo): void
                 ADD COLUMN cupom_codigo VARCHAR(30) NULL,
                 ADD INDEX idx_cupom (cupom_id)");
         }
+        // Modelo da camiseta (ex.: 'curta', 'longa'); NULL = sem camiseta ou inscrição de antes dos modelos
+        if (!$pdo->query("SHOW COLUMNS FROM inscricoes LIKE 'camiseta_modelo'")->fetch()) {
+            $pdo->exec("ALTER TABLE inscricoes ADD COLUMN camiseta_modelo VARCHAR(20) NULL AFTER camiseta_tamanho");
+        }
         if (!$pdo->query("SHOW COLUMNS FROM inscricoes LIKE 'valor_taxa'")->fetch()) {
             $pdo->exec("ALTER TABLE inscricoes ADD COLUMN valor_taxa DECIMAL(8,2) NOT NULL DEFAULT 0");
         }

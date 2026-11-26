@@ -9,7 +9,7 @@ $falha = false;
 $codigo = strtoupper(trim((string) ($_GET['c'] ?? '')));
 if (preg_match('/^[A-F0-9]{10}$/', $codigo)) {
     try {
-        $st = db()->prepare('SELECT codigo, nome, categoria, camiseta_tamanho, valor_inscricao, valor_desconto, cupom_codigo, valor_taxa, valor_camiseta, valor_total, status
+        $st = db()->prepare('SELECT codigo, nome, categoria, camiseta_modelo, camiseta_tamanho, valor_inscricao, valor_desconto, cupom_codigo, valor_taxa, valor_camiseta, valor_total, status
                              FROM inscricoes WHERE codigo = :c LIMIT 1');
         $st->execute([':c' => $codigo]);
         $inscricao = $st->fetch() ?: null;
@@ -64,7 +64,8 @@ $rotulos = ['pendente' => 'Aguardando pagamento', 'pago' => 'Pagamento confirmad
                     <dt>Camiseta</dt>
                     <dd>
                         <?php if ($inscricao['camiseta_tamanho']): ?>
-                            <?= e(moeda((float) $inscricao['valor_camiseta'])) ?> (tamanho <?= e($inscricao['camiseta_tamanho']) ?>)
+                            <?php $m = $inscricao['camiseta_modelo'] ? camiseta_modelo($inscricao['camiseta_modelo']) : null; ?>
+                            <?= e(moeda((float) $inscricao['valor_camiseta'])) ?> (<?= $m ? e($m['nome']) . ', ' : '' ?>tamanho <?= e($inscricao['camiseta_tamanho']) ?>)
                         <?php else: ?>
                             Não
                         <?php endif; ?>

@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS inscricoes (
     categoria VARCHAR(30) NOT NULL,
     equipe VARCHAR(80) NULL,
     camiseta_tamanho VARCHAR(4) NULL,           -- NULL = não comprou camiseta
+    camiseta_modelo VARCHAR(20) NULL,           -- modelo escolhido (ex.: curta, longa)
     emerg_nome VARCHAR(150) NOT NULL,
     emerg_tel VARCHAR(20) NOT NULL,
     saude VARCHAR(300) NULL,

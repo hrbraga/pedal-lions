@@ -9,6 +9,7 @@ $ev         = evento();
 $fechamento = inscricoes_fechamento(); // null = abertas; 'encerradas', 'fechadas', 'em_breve' ou 'esgotadas'
 $cam        = $ev['camiseta'];
 $cam_aberta = camiseta_aberta();
+$cam_modelos = camiseta_modelos($cam);
 $estados    = ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'];
 
 $erros = [];
@@ -20,7 +21,7 @@ $old   = [];
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     foreach (['categoria','nome','cpf','nascimento','sexo','email','telefone','cidade','uf','equipe',
-              'emerg_nome','emerg_tel','saude','camiseta_tamanho','cupom'] as $campo) {
+              'emerg_nome','emerg_tel','saude','camiseta_modelo','camiseta_tamanho','cupom'] as $campo) {
         $old[$campo] = post_txt($campo);
     }
     $old['quero_camiseta']     = !empty($_POST['quero_camiseta']);
@@ -91,17 +92,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $erros[] = 'Para se inscrever, aceite o regulamento e o termo de responsabilidade.';
     }
 
-    // Camiseta: só dentro do prazo, e com tamanho válido
+    // Camiseta: só dentro do prazo, com modelo e tamanho válidos; o preço é sempre o do modelo salvo
+    $camiseta_modelo  = null;
     $camiseta_tamanho = null;
     $valor_camiseta   = 0.0;
     if ($old['quero_camiseta']) {
+        $modelo = camiseta_modelo($old['camiseta_modelo']);
         if (!$cam_aberta) {
             $erros[] = 'O prazo para comprar a camiseta terminou em ' . data_br($cam['prazo_iso']) . '.';
+        } elseif (!$modelo) {
+            $erros[] = 'Escolha o modelo da camiseta.';
         } elseif (!in_array($old['camiseta_tamanho'], $cam['tamanhos'], true)) {
             $erros[] = 'Escolha o tamanho da camiseta.';
         } else {
+            $camiseta_modelo  = $modelo['slug'];
             $camiseta_tamanho = $old['camiseta_tamanho'];
-            $valor_camiseta   = (float) $cam['valor'];
+            $valor_camiseta   = (float) $modelo['valor'];
         }
     }
 
@@ -180,11 +186,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     $sql = 'INSERT INTO inscricoes
                             (codigo, nome, cpf, nascimento, sexo, email, telefone, cidade, uf, categoria, equipe,
-                             camiseta_tamanho, emerg_nome, emerg_tel, saude, aceite_regulamento, aceite_termo,
+                             camiseta_modelo, camiseta_tamanho, emerg_nome, emerg_tel, saude, aceite_regulamento, aceite_termo,
                              valor_inscricao, valor_desconto, cupom_id, cupom_codigo, valor_taxa, valor_camiseta, valor_total, status, pago_em)
                             VALUES
                             (:codigo, :nome, :cpf, :nascimento, :sexo, :email, :telefone, :cidade, :uf, :categoria, :equipe,
-                             :camiseta_tamanho, :emerg_nome, :emerg_tel, :saude, 1, 1,
+                             :camiseta_modelo, :camiseta_tamanho, :emerg_nome, :emerg_tel, :saude, 1, 1,
                              :valor_inscricao, :valor_desconto, :cupom_id, :cupom_codigo, :valor_taxa, :valor_camiseta, :valor_total, :status, :pago_em)';
                     $stmt = $pdo->prepare($sql);
 
@@ -203,6 +209,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 ':uf'               => $old['uf'],
                                 ':categoria'        => $categoria['slug'],
                                 ':equipe'           => $old['equipe'] !== '' ? $old['equipe'] : null,
+                                ':camiseta_modelo'  => $camiseta_modelo,
                                 ':camiseta_tamanho' => $camiseta_tamanho,
                                 ':emerg_nome'       => $old['emerg_nome'],
                                 ':emerg_tel'        => $tel_em,
@@ -399,16 +406,31 @@ require __DIR__ . '/includes/header.php';
                                 </div>
 
                                 <div class="camiseta__dados">
-                                    <p class="camiseta__preco"><?= e(moeda($cam['valor'])) ?> <small>valor à parte da inscrição</small></p>
+                                    <ul class="camiseta__precos">
+                                        <?php foreach ($cam_modelos as $m): ?>
+                                            <li><span><?= e($m['nome']) ?></span> <strong><?= e(moeda($m['valor'])) ?></strong></li>
+                                        <?php endforeach; ?>
+                                    </ul>
+                                    <p class="dica">Valor à parte da inscrição.</p>
                                     <p class="dica">Compra disponível até <strong><?= e(data_br($cam['prazo_iso'])) ?></strong>. Depois dessa data não será possível adicionar a camiseta. Limite de uma camiseta por atleta.</p>
 
                                     <label class="aceite">
-                                        <input type="checkbox" id="quero-camiseta" name="quero_camiseta" value="1"
-                                               data-valor="<?= e(number_format($cam['valor'], 2, '.', '')) ?>"<?= marcado('quero_camiseta') ?>>
+                                        <input type="checkbox" id="quero-camiseta" name="quero_camiseta" value="1"<?= marcado('quero_camiseta') ?>>
                                         <span>Quero comprar a camiseta oficial</span>
                                     </label>
 
                                     <div id="camiseta-tamanho" class="campo"<?= empty($old['quero_camiseta']) ? ' hidden' : '' ?>>
+                                        <fieldset class="camiseta__modelos">
+                                            <legend>Modelo</legend>
+                                            <?php foreach ($cam_modelos as $m): ?>
+                                                <label class="opcao-modelo">
+                                                    <input type="radio" name="camiseta_modelo" value="<?= e($m['slug']) ?>"
+                                                           data-valor="<?= e(number_format($m['valor'], 2, '.', '')) ?>" data-nome="<?= e($m['nome']) ?>"
+                                                           <?= ($old['camiseta_modelo'] ?? '') === $m['slug'] || count($cam_modelos) === 1 ? ' checked' : '' ?>>
+                                                    <span><?= e($m['nome']) ?> <small><?= e(moeda($m['valor'])) ?></small></span>
+                                                </label>
+                                            <?php endforeach; ?>
+                                        </fieldset>
                                         <label for="tamanho">Tamanho</label>
                                         <select id="tamanho" name="camiseta_tamanho">
                                             <option value="">Selecione o tamanho</option>
