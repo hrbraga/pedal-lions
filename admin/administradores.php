@@ -5,6 +5,28 @@ admin_exigir('admins');
 $meu_id = (int) $_SESSION['admin_id'];
 $erros  = [];
 $novo_usuario = '';
+$novo_acesso  = ['total' => false, 'paginas' => []];
+
+/** Acesso marcado no formulário enviado. Com "Acesso total", as páginas são ignoradas. */
+function acesso_do_post(): array
+{
+    $total = ($_POST['acesso_total'] ?? '') === '1';
+    $paginas = is_array($_POST['paginas'] ?? null) ? acesso_paginas_normalizar($_POST['paginas']) : [];
+    return ['total' => $total, 'paginas' => $total ? [] : $paginas];
+}
+
+/** Caixas "Acesso total" + uma por página. $id_base deixa os ids únicos quando há vários formulários. */
+function caixas_acesso(string $id_base, bool $total, array $paginas): string
+{
+    $h = '<fieldset class="adm-checks"><legend>Páginas que pode acessar</legend>';
+    $h .= '<label class="adm-checks__total"><input type="checkbox" name="acesso_total" value="1"' . ($total ? ' checked' : '')
+        . '> Acesso total <small>(todas as páginas, inclusive as que forem criadas depois)</small></label>';
+    foreach (ACESSO_PAGINAS as $chave => $p) {
+        $h .= '<label><input type="checkbox" name="paginas[]" value="' . e($chave) . '" id="' . e($id_base . '-' . $chave) . '"'
+            . (in_array($chave, $paginas, true) ? ' checked' : '') . '> ' . e($p['rotulo']) . '</label>';
+    }
+    return $h . '</fieldset>';
+}
 
 function erros_usuario(string $usuario): array
 {
@@ -31,12 +53,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $novo_usuario = trim(post_txt('usuario'));
                 $senha        = (string) ($_POST['senha'] ?? '');
                 $confirmar    = (string) ($_POST['confirmar'] ?? '');
+                $novo_acesso  = acesso_do_post();
                 $erros = array_merge(erros_usuario($novo_usuario), erros_senha($senha, $confirmar));
+                if (!$novo_acesso['total'] && !$novo_acesso['paginas']) {
+                    $erros[] = 'Marque pelo menos uma página ou "Acesso total".';
+                }
 
                 if (!$erros) {
                     try {
-                        $pdo->prepare('INSERT INTO admins (usuario, senha_hash) VALUES (:u, :h)')
-                            ->execute([':u' => $novo_usuario, ':h' => password_hash($senha, PASSWORD_DEFAULT)]);
+                        $pdo->prepare('INSERT INTO admins (usuario, senha_hash, acesso_total, paginas) VALUES (:u, :h, :t, :p)')
+                            ->execute([
+                                ':u' => $novo_usuario,
+                                ':h' => password_hash($senha, PASSWORD_DEFAULT),
+                                ':t' => $novo_acesso['total'] ? 1 : 0,
+                                ':p' => $novo_acesso['total'] ? '' : acesso_paginas_texto($novo_acesso['paginas']),
+                            ]);
                         flash('ok', 'Administrador "' . $novo_usuario . '" criado.');
                         header('Location: administradores.php');
                         exit;
@@ -75,32 +106,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 break;
 
+            case 'acesso':
             case 'remover':
                 $id = (int) ($_POST['id'] ?? 0);
-                $total = (int) $pdo->query('SELECT COUNT(*) FROM admins')->fetchColumn();
+                // Trava as linhas dos administradores: duas mudanças ao mesmo tempo não podem,
+                // juntas, deixar o painel sem ninguém com acesso total.
+                $pdo->beginTransaction();
+                $todos = $pdo->query('SELECT id, usuario, acesso_total FROM admins FOR UPDATE')->fetchAll();
+                $qtd_total = count(array_filter($todos, fn($a) => (int) $a['acesso_total'] === 1));
+                $alvo = null;
+                foreach ($todos as $a) {
+                    if ((int) $a['id'] === $id) {
+                        $alvo = $a;
+                    }
+                }
 
-                $st = $pdo->prepare('SELECT usuario FROM admins WHERE id = :id');
-                $st->execute([':id' => $id]);
-                $alvo = $st->fetchColumn();
+                if ($alvo === null) {
+                    $erro = 'Administrador não encontrado.';
+                } elseif ($acao === 'acesso') {
+                    $novo_acesso = acesso_do_post();
+                    $erro = acesso_erro_alterar($meu_id, $id, (bool) $alvo['acesso_total'], $novo_acesso['total'], $qtd_total);
+                } else {
+                    $erro = acesso_erro_remover($meu_id, $id, (bool) $alvo['acesso_total'], $qtd_total, count($todos));
+                }
 
-                if ($alvo === false) {
-                    $erros[] = 'Administrador não encontrado.';
-                } elseif ($id === $meu_id) {
-                    $erros[] = 'Você não pode remover o seu próprio acesso.';
-                } elseif ($total <= 1) {
-                    $erros[] = 'É preciso manter pelo menos um administrador.';
+                if ($erro !== null) {
+                    $pdo->rollBack();
+                    $erros[] = $erro;
+                    break;
+                }
+                if ($acao === 'acesso') {
+                    $pdo->prepare('UPDATE admins SET acesso_total = :t, paginas = :p WHERE id = :id')->execute([
+                        ':t'  => $novo_acesso['total'] ? 1 : 0,
+                        ':p'  => $novo_acesso['total'] ? '' : acesso_paginas_texto($novo_acesso['paginas']),
+                        ':id' => $id,
+                    ]);
+                    flash('ok', 'Acesso de "' . $alvo['usuario'] . '" atualizado.');
                 } else {
                     $pdo->prepare('DELETE FROM admins WHERE id = :id')->execute([':id' => $id]);
-                    flash('ok', 'Administrador "' . $alvo . '" removido.');
-                    header('Location: administradores.php');
-                    exit;
+                    flash('ok', 'Administrador "' . $alvo['usuario'] . '" removido.');
                 }
-                break;
+                $pdo->commit();
+                header('Location: administradores.php');
+                exit;
 
             default:
                 $erros[] = 'Ação inválida.';
         }
     } catch (PDOException $e) {
+        if (isset($pdo) && $pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
         error_log('Pedal Solidário – erro em administradores: ' . $e->getMessage());
         $erros[] = 'Não foi possível concluir a ação.' . (banco_debug() ? ' ' . $e->getMessage() : '');
     }
@@ -108,7 +164,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $admins = [];
 try {
-    $admins = db()->query('SELECT id, usuario, criado_em FROM admins ORDER BY usuario')->fetchAll();
+    $admins = db()->query('SELECT id, usuario, criado_em, acesso_total, paginas FROM admins ORDER BY usuario')->fetchAll();
 } catch (PDOException $e) {
     error_log('Pedal Solidário – erro ao listar administradores: ' . $e->getMessage());
     $erros[] = 'Não foi possível carregar a lista de administradores.';
@@ -129,21 +185,37 @@ require __DIR__ . '/_topo.php';
     </div>
 <?php endif; ?>
 
-<p>Todos os administradores têm o mesmo acesso: ver e alterar inscrições, exportar dados e gerenciar esta lista.</p>
+<p>Cada administrador só vê as páginas liberadas para ele. Quem tem a página Administradores pode criar pessoas e mudar o acesso dos outros.</p>
 
 <div class="adm-rolagem">
     <table class="adm-tabela">
-        <thead><tr><th>Usuário</th><th>Criado em</th><th></th></tr></thead>
+        <thead><tr><th>Usuário</th><th>Acesso</th><th>Criado em</th><th></th></tr></thead>
         <tbody>
-        <?php foreach ($admins as $a): ?>
-            <tr>
+        <?php foreach ($admins as $a):
+            $a_total   = (bool) $a['acesso_total'];
+            $a_paginas = acesso_paginas_ler((string) $a['paginas']);
+            $eu        = (int) $a['id'] === $meu_id; ?>
+            <tr data-usuario="<?= e($a['usuario']) ?>">
                 <td>
                     <?= e($a['usuario']) ?>
-                    <?php if ((int) $a['id'] === $meu_id): ?><span class="adm-selo adm-selo--pago">você</span><?php endif; ?>
+                    <?php if ($eu): ?><span class="adm-selo adm-selo--pago">você</span><?php endif; ?>
                 </td>
+                <td class="acesso"><?= e(acesso_descricao($a_total, $a_paginas)) ?></td>
                 <td><?= e(data_hora_br($a['criado_em'])) ?></td>
                 <td class="acoes">
-                    <?php if ((int) $a['id'] !== $meu_id && count($admins) > 1): ?>
+                    <?php if (!$eu): ?>
+                        <details class="adm-editar-acesso" data-editar="<?= e($a['usuario']) ?>">
+                            <summary class="adm-btn adm-btn--claro adm-btn--mini">Editar acesso</summary>
+                            <form method="post" class="adm-form">
+                                <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+                                <input type="hidden" name="acao" value="acesso">
+                                <input type="hidden" name="id" value="<?= (int) $a['id'] ?>">
+                                <?= caixas_acesso('acesso-' . (int) $a['id'], $a_total, $a_paginas) ?>
+                                <button class="adm-btn adm-btn--mini" type="submit">Salvar acesso</button>
+                            </form>
+                        </details>
+                    <?php endif; ?>
+                    <?php if (!$eu && count($admins) > 1): ?>
                         <form method="post" onsubmit="return confirm('Remover o administrador <?= e(addslashes($a['usuario'])) ?>? Ele perde o acesso imediatamente.');">
                             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                             <input type="hidden" name="acao" value="remover">
@@ -170,6 +242,7 @@ require __DIR__ . '/_topo.php';
             <input type="password" id="novo-senha" name="senha" required autocomplete="new-password">
             <label for="novo-confirmar">Confirmar senha</label>
             <input type="password" id="novo-confirmar" name="confirmar" required autocomplete="new-password">
+            <?= caixas_acesso('novo', $novo_acesso['total'], $novo_acesso['paginas']) ?>
             <button class="adm-btn" type="submit">Criar administrador</button>
         </form>
     </section>

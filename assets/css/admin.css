@@ -180,3 +180,15 @@ code { background: #E8ECF6; padding: .1rem .35rem; border-radius: 4px; font-size
 .adm-salvar-barra .adm-btn { min-width: 14rem; }
 .adm-erros-lista { margin: .5rem 0 0; padding-left: 1.2rem; }
 .adm-erros-lista a { color: inherit; font-weight: 600; }
+
+/* Níveis de acesso (Administradores) */
+.adm-checks { border: 2px solid var(--linha); border-radius: var(--raio); padding: .4rem .9rem .8rem; margin: 1rem 0 0; }
+.adm-checks legend { font-weight: 600; padding: 0 .3rem; }
+.adm-form .adm-checks label { display: block; font-weight: 400; margin: .5rem 0 0; }
+.adm-form .adm-checks .adm-checks__total { font-weight: 600; padding-bottom: .5rem; border-bottom: 1px solid var(--linha); }
+.adm-form .adm-checks input { width: auto; padding: 0; margin: 0 .45rem 0 0; vertical-align: -1px; }
+.adm-checks small { font-weight: 400; }
+.adm-editar-acesso { display: inline-block; vertical-align: top; margin-right: .4rem; }
+.adm-editar-acesso summary { list-style: none; cursor: pointer; display: inline-block; }
+.adm-editar-acesso summary::-webkit-details-marker { display: none; }
+.adm-editar-acesso[open] form { min-width: 16rem; margin-top: .5rem; text-align: left; white-space: normal; }
