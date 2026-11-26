@@ -38,7 +38,11 @@ require __DIR__ . '/includes/header.php';
             </ul>
 
             <h2>4. Cancelamento e transferência</h2>
-            <p>Política de cancelamento, reembolso e transferência de inscrição: a confirmar.</p>
+            <ul>
+                <li>Não há reembolso do valor pago.</li>
+                <li>Em caso de tempo severo, o evento poderá ser transferido para outra data, a ser definida e divulgada na semana do evento. As inscrições continuam válidas para a nova data.</li>
+                <li>A inscrição pode ser transferida para outra pessoa até 12/03/2027, mediante solicitação à organização.</li>
+            </ul>
 
             <h2>5. Idade mínima e menores de idade</h2>
             <p>Menores de 18 anos só poderão participar com autorização assinada pelo pai, mãe ou responsável legal, entregue na retirada do kit. Idade mínima e regras de acompanhamento: a confirmar.</p>
@@ -49,7 +53,7 @@ require __DIR__ . '/includes/header.php';
                 <li>A bicicleta deve estar em boas condições, com freios e pneus funcionando.</li>
                 <li>É dever do participante respeitar a sinalização, as orientações da organização e a legislação de trânsito.</li>
                 <li>Recomenda-se levar água, documento e o contato de emergência.</li>
-                <li>Bicicletas elétricas participam somente na categoria E-bike Hard. Regras de potência e velocidade: a confirmar.</li>
+                <li>Bicicletas elétricas participam somente na categoria E-bike Hard. Não há regras de potência para as e-bikes.</li>
             </ul>
 
             <h2>7. Retirada do kit</h2>
@@ -64,7 +68,7 @@ require __DIR__ . '/includes/header.php';
                     </li>
                 <?php endforeach; ?>
             </ul>
-            <p>Forma de cronometragem e critérios de desempate: a confirmar. Para a premiação por equipes, todos os integrantes devem informar o mesmo nome de equipe na inscrição.</p>
+            <p>A cronometragem será feita manualmente por duas equipes da organização. Critérios de desempate: a confirmar. Para a premiação por equipes, todos os integrantes devem informar o mesmo nome de equipe na inscrição.</p>
 
             <h2>9. Termo de responsabilidade</h2>
             <p>Ao se inscrever, o participante declara estar em condições de saúde adequadas para a prática de atividade física, assume os riscos inerentes ao ciclismo e isenta a organização de responsabilidade por acidentes decorrentes do descumprimento das regras. Texto jurídico definitivo: a confirmar.</p>

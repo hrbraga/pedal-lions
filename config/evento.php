@@ -85,7 +85,7 @@ return [
         [
             'titulo' => 'Rachão',
             'regra'  => '1º ao 5º lugar geral, masculino e feminino',
-            'premio' => 'Troféu + premiação',
+            'premio' => 'Troféu do 1º ao 5º; em dinheiro, no masculino e no feminino: 1º R$ 250,00, 2º R$ 150,00 e 3º R$ 100,00',
         ],
         [
             'titulo' => 'Hard e Light',
@@ -183,11 +183,11 @@ HTML,
         ],
         [
             'p' => 'Posso transferir ou cancelar minha inscrição?',
-            'r' => 'A política de cancelamento e transferência será definida no regulamento. A confirmar.',
+            'r' => 'Não há reembolso do valor pago. A inscrição pode ser transferida para outra pessoa até 12/03/2027, mediante solicitação à organização.',
         ],
         [
             'p' => 'O que acontece em caso de chuva?',
-            'r' => 'A organização avaliará as condições de segurança e comunicará qualquer alteração pelos canais oficiais do evento. A confirmar.',
+            'r' => 'Em caso de tempo severo, o evento poderá ser transferido para outra data, a ser definida e divulgada na semana do evento pelos canais oficiais. As inscrições continuam válidas para a nova data.',
         ],
         [
             'p' => 'Para onde vai o valor arrecadado?',
