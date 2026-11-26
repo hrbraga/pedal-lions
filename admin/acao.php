@@ -22,7 +22,7 @@ $acao = post_txt('acao');
 
 try {
     $pdo = db();
-    $st = $pdo->prepare('SELECT id, nome, status FROM inscricoes WHERE id = :id');
+    $st = $pdo->prepare('SELECT id, nome, status, pago_em FROM inscricoes WHERE id = :id');
     $st->execute([':id' => $id]);
     $insc = $st->fetch();
 
@@ -49,6 +49,11 @@ try {
             break;
 
         case 'excluir':
+            // Já paga (mesmo cancelada depois): o valor está no financeiro; excluir apagaria o dinheiro dos livros
+            if (!empty($insc['pago_em'])) {
+                flash('erro', 'Inscrição já paga não pode ser excluída (o valor está no financeiro). Use Cancelar.');
+                break;
+            }
             $pdo->prepare('DELETE FROM inscricoes WHERE id = :id')->execute([':id' => $id]);
             flash('ok', 'Inscrição de ' . $insc['nome'] . ' excluída definitivamente.');
             header('Location: painel.php');

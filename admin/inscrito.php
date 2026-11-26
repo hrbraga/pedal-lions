@@ -67,7 +67,9 @@ if ($erro_banco): ?>
         <?php if ($i['status'] !== 'cancelado'): ?>
             <?php campo_acao('cancelado', 'Cancelar inscrição', 'adm-btn--claro', 'Cancelar esta inscrição?', $i, $voltar_detalhe); ?>
         <?php endif; ?>
-        <?php campo_acao('excluir', 'Excluir', 'adm-btn--perigo', 'Excluir DEFINITIVAMENTE esta inscrição? Esta ação não pode ser desfeita.', $i, $voltar_detalhe); ?>
+        <?php if (empty($i['pago_em'])): ?>
+            <?php campo_acao('excluir', 'Excluir', 'adm-btn--perigo', 'Excluir DEFINITIVAMENTE esta inscrição? Esta ação não pode ser desfeita.', $i, $voltar_detalhe); ?>
+        <?php endif; ?>
     </div>
 
     <div class="adm-duplo">
