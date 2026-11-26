@@ -297,10 +297,14 @@ function item_patrocinador(array $f, array $erros, string $i): string
 {
     $logo = valor_de($f, "patrocinadores.$i.logo");
     $erro = $erros["patrocinadores.$i.logo"] ?? '';
-    $previa = $logo !== '' ? ' src="../' . e(patro_url($logo)) . '"' : '';
+    $existe = $logo !== '' && patro_logo_valido($logo, patro_raiz());
+    if ($logo !== '' && !$existe && $erro === '') {
+        $erro = 'O arquivo deste logo não está mais no servidor. Envie o logo de novo.';
+    }
+    $previa = $existe ? ' src="../' . e(patro_url($logo)) . '"' : '';
     return '<fieldset class="adm-item adm-patro" data-item>' . botoes_item()
         . '<div class="adm-patro__logo">'
-        . '<img class="adm-patro__previa" data-logo-previa alt=""' . $previa . ($logo === '' ? ' hidden' : '') . '>'
+        . '<img class="adm-patro__previa" data-logo-previa alt=""' . $previa . ($existe ? '' : ' hidden') . '>'
         . '<input type="hidden" name="' . e(nome_de("patrocinadores.$i.logo")) . '" value="' . e($logo) . '">'
         . '<label class="adm-campo' . ($erro !== '' ? ' adm-campo--erro' : '') . '"><span>' . ($logo === '' ? 'Enviar logo' : 'Trocar logo') . '</span>'
         . '<input type="file" name="' . e(nome_de("patrocinadores.$i.arquivo")) . '" accept="image/png,image/jpeg,image/webp" data-logo-arquivo'

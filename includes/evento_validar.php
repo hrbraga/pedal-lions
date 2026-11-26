@@ -158,10 +158,20 @@ function evento_para_formulario(array $ev): array
     $dinheiro = function ($v) {
         return number_format((float) $v, 2, ',', '');
     };
-    // Logos da lista salva ou, antes do primeiro Salvar no formato novo, os da pasta antiga (já com nome)
-    $patro = array_map(function ($p) {
-        return ['logo' => $p['logo'], 'nome' => $p['nome'], 'url' => $p['url']];
-    }, patrocinadores_de($ev, patro_raiz()));
+    // Lista salva como está (inclusive item cujo arquivo sumiu: o painel mostra e pede o logo de novo, em vez de
+    // apagar o patrocinador sem aviso no próximo Salvar). Sem lista salva: os logos da pasta antiga, já com nome.
+    if (isset($ev['patrocinadores']) && is_array($ev['patrocinadores'])) {
+        $patro = [];
+        foreach ($ev['patrocinadores'] as $p) {
+            if (is_array($p)) {
+                $patro[] = ['logo' => (string) ($p['logo'] ?? ''), 'nome' => (string) ($p['nome'] ?? ''), 'url' => (string) ($p['url'] ?? '')];
+            }
+        }
+    } else {
+        $patro = array_map(function ($p) {
+            return ['logo' => $p['logo'], 'nome' => $p['nome'], 'url' => $p['url']];
+        }, patrocinadores_de($ev, patro_raiz()));
+    }
     $taxa = (float) ($ev['taxa_administracao']['percentual'] ?? 0);
     return [
         'geral' => [

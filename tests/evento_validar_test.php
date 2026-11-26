@@ -214,6 +214,20 @@ confere('formulário traz os logos da pasta antiga, com nome', array_column($for
     ['assets/img/patrocinadores/Galdini.png', 'assets/img/patrocinadores/pebaaobruto.png', 'assets/img/patrocinadores/royal.png', 'assets/img/patrocinadores/vital.jpg']);
 confere('formulário: nome de cada patrocinador preenchido', count(array_filter(array_column($form['patrocinadores'], 'nome'))), 4);
 confere('ida e volta mantém os patrocinadores', array_column($ida_volta['dados']['patrocinadores'], 'logo'), array_column($form['patrocinadores'], 'logo'));
+
+// Logo cujo arquivo sumiu do servidor (ex.: mudança de hospedagem): o patrocinador continua no formulário,
+// com nome e link, e o Salvar pede o logo de novo em vez de apagar o patrocinador sem aviso
+$sumiu = $atual;
+$sumiu['patrocinadores'] = [
+    ['logo' => 'uploads/patrocinadores/ffffffffffffffff.png', 'nome' => 'Sumiu', 'url' => 'https://sumiu.com.br'],
+    ['logo' => 'assets/img/patrocinadores/royal.png', 'nome' => 'Royal'],
+];
+$form_sumiu = evento_para_formulario($sumiu);
+confere('logo sumido: patrocinador continua no formulário', $form_sumiu['patrocinadores'], [
+    ['logo' => 'uploads/patrocinadores/ffffffffffffffff.png', 'nome' => 'Sumiu', 'url' => 'https://sumiu.com.br'],
+    ['logo' => 'assets/img/patrocinadores/royal.png', 'nome' => 'Royal', 'url' => ''],
+]);
+confere('logo sumido: salvar pede o logo de novo', $v($form_sumiu)['erros']['patrocinadores.0.logo'] ?? null, 'Envie o logo do patrocinador.');
 confere('taxa sem casas desnecessárias', $form['inscricoes']['taxa'], '10');
 $fechado = $atual;
 $fechado['inscricoes_abertas'] = false;
