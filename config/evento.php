@@ -55,10 +55,9 @@ return [
     // Camiseta oficial (compra opcional, à parte da inscrição)
     'camiseta' => [
         // Modelos e preços (escolhidos na inscrição). Depois do primeiro Salvar no painel, valem os de Dados do Evento.
-        // ATENÇÃO: o preço da manga longa abaixo é PROVISÓRIO até a organização confirmar.
         'modelos'    => [
             ['slug' => 'curta', 'nome' => 'Manga curta', 'valor' => 130.00],
-            ['slug' => 'longa', 'nome' => 'Manga longa', 'valor' => 130.00],
+            ['slug' => 'longa', 'nome' => 'Manga longa', 'valor' => 150.00],
         ],
         // Último dia para comprar (inclusive). Para alterar, mude apenas esta data (AAAA-MM-DD).
         'prazo_iso'  => '2027-02-20',
