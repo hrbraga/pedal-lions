@@ -54,5 +54,16 @@ confere('total: limitado mexe em limitado', acesso_erro_total(false, false, fals
 confere('total: quem tem total pode tudo', acesso_erro_total(true, true, false), null);
 confere('total: quem tem total dá total', acesso_erro_total(true, false, true), null);
 
+// Quem não tem acesso total só libera páginas que ele mesmo tem
+$f = 'acesso_erro_paginas';
+confere('páginas: total libera qualquer uma', $f(true, [], [], ['dados', 'cupons']), null);
+confere('páginas: libera uma que tem', $f(false, ['admins', 'cupons'], [], ['cupons']), null);
+confere('páginas: libera uma que não tem', $f(false, ['admins', 'cupons'], [], ['cupons', 'dados']),
+    'Você só pode liberar páginas que você também acessa. Sem acesso: Dados do Evento.');
+confere('páginas: lista todas as que não tem, na ordem do menu', $f(false, ['admins'], [], ['exportar', 'inscritos']),
+    'Você só pode liberar páginas que você também acessa. Sem acesso: Inscritos, Exportar CSV.');
+confere('páginas: manter uma que o outro já tinha', $f(false, ['admins', 'cupons'], ['dados'], ['dados', 'cupons']), null);
+confere('páginas: tirar uma que não tem', $f(false, ['admins'], ['dados', 'cupons'], ['cupons']), null);
+
 echo $falhas ? "\n$falhas falha(s)\n" : "\nTudo certo\n";
 exit($falhas ? 1 : 0);

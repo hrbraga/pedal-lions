@@ -111,3 +111,20 @@ function acesso_erro_total(bool $eu_total, bool $alvo_total, bool $novo_total): 
     }
     return null;
 }
+
+/**
+ * Quem não tem acesso total só pode liberar páginas que ele mesmo acessa.
+ * Compara o antes e o depois: manter uma página que o outro já tinha, ou tirá-la, é sempre permitido.
+ */
+function acesso_erro_paginas(bool $eu_total, array $minhas, array $antes, array $depois): ?string
+{
+    if ($eu_total) {
+        return null;
+    }
+    $novas = array_diff(acesso_paginas_normalizar($depois), $antes, $minhas);
+    if (!$novas) {
+        return null;
+    }
+    $rotulos = array_map(fn($k) => ACESSO_PAGINAS[$k]['rotulo'], acesso_paginas_normalizar($novas));
+    return 'Você só pode liberar páginas que você também acessa. Sem acesso: ' . implode(', ', $rotulos) . '.';
+}
