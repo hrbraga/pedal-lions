@@ -6,6 +6,7 @@
 
 /** Páginas com acesso controlado, na ordem do menu. A chave é o que fica gravado no banco. */
 const ACESSO_PAGINAS = [
+    'dashboard' => ['rotulo' => 'Dashboard', 'url' => 'dashboard.php'],
     'inscritos' => ['rotulo' => 'Inscritos', 'url' => 'painel.php'],
     'cupons'    => ['rotulo' => 'Cupons', 'url' => 'cupons.php'],
     'dados'     => ['rotulo' => 'Dados do Evento', 'url' => 'dados.php'],

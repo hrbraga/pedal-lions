@@ -26,7 +26,7 @@ confere('grava texto', acesso_paginas_texto(['admins', 'cupons', 'zzz']), 'cupon
 confere('acesso total pode tudo, até página futura', acesso_pode(true, [], 'financeiro'), true);
 confere('pode página liberada', acesso_pode(false, ['cupons'], 'cupons'), true);
 confere('não pode página não liberada', acesso_pode(false, ['cupons'], 'inscritos'), false);
-confere('início com acesso total', acesso_inicio(true, []), 'painel.php');
+confere('início com acesso total', acesso_inicio(true, []), 'dashboard.php'); // o Dashboard é a primeira página do menu
 confere('início na ordem do menu', acesso_inicio(false, ['exportar', 'dados']), 'dados.php');
 confere('início sem páginas', acesso_inicio(false, []), 'conta.php');
 // Exportar CSV é um download, não uma página: não pode ser a página inicial (evita baixar arquivo no login e laço de redirecionamento)
