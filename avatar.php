@@ -52,7 +52,6 @@ require __DIR__ . '/includes/header.php';
 
             <p id="avatar-aviso" class="avatar__aviso" role="status" aria-live="polite"></p>
 
-            <p class="dica avatar__privacidade">Sua foto não sai do seu aparelho: a imagem é montada aqui mesmo, no navegador.</p>
         </div>
     </div>
 </section>
