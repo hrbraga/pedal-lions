@@ -14,8 +14,13 @@ $menu = [
     'programacao' => ['programacao.php', 'Programação'],
     'regulamento' => ['regulamento.php', 'Regulamento'],
     'faq'         => ['faq.php',         'FAQ'],
+    'inscritos'   => ['inscritos.php',   'Inscritos'],
     'avatar'      => ['avatar.php',      'Eu vou!'],
 ];
+// A lista pública de inscritos só entra no menu quando liberada no painel
+if (empty($ev['lista_inscritos_publica'])) {
+    unset($menu['inscritos']);
+}
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -24,6 +29,7 @@ $menu = [
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?= e($titulo_pagina) ?></title>
     <meta name="description" content="<?= e($descricao_pagina) ?>">
+    <?php if (!empty($noindex)): ?><meta name="robots" content="noindex"><?php endif; ?>
     <meta name="theme-color" content="#0A1E4D">
     <link rel="icon" href="favicon.ico" sizes="any">
     <link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32.png">

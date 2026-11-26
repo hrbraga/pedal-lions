@@ -28,7 +28,9 @@ return [
     // Abertas, com início programado: antes do dia e hora abaixo, o site mostra "Início das Inscrições: …" e não aceita
     // inscrição; no minuto marcado, abrem sozinhas. false = fechadas ("As inscrições ainda não estão abertas.").
     'inscricoes_abertas' => true,
-    'inscricoes_inicio'  => '2026-12-01T12:00',  // AAAA-MM-DDTHH:MM (horário de Brasília); '' = sem início programado
+    'inscricoes_inicio'  => '2026-12-01T12:00',
+    // Lista pública de inscritos (página Inscritos, só pagas): liberada pelo painel em Dados do Evento → Inscrições.
+    'lista_inscritos_publica' => false,  // AAAA-MM-DDTHH:MM (horário de Brasília); '' = sem início programado
 
     // Contatos exibidos no rodapé e no FAQ.
     'contato' => [

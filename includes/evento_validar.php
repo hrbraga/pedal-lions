@@ -180,6 +180,7 @@ function evento_para_formulario(array $ev): array
         ],
         'inscricoes' => array_merge(
             !empty($ev['inscricoes_abertas']) ? ['abertas' => '1'] : [],
+            !empty($ev['lista_inscritos_publica']) ? ['lista_publica' => '1'] : [],
             [
                 'prazo_iso' => (string) ($ev['inscricoes_prazo_iso'] ?? ''),
                 'inicio'    => (string) ($ev['inscricoes_inicio'] ?? ''),
@@ -264,6 +265,7 @@ function evento_validar(array $entrada, array $atual, array $categorias_com_insc
     // Inscrições
     $i = is_array($entrada['inscricoes'] ?? null) ? $entrada['inscricoes'] : [];
     $dados['inscricoes_abertas'] = !empty($i['abertas']);
+    $dados['lista_inscritos_publica'] = !empty($i['lista_publica']); // lista pública de inscritos no site
     $prazo = campo($i, 'prazo_iso');
     if ($prazo !== '' && !data_valida($prazo)) {
         $erros['inscricoes.prazo_iso'] = 'Informe uma data válida (ou deixe em branco para não ter prazo).';

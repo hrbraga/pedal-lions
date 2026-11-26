@@ -118,6 +118,12 @@ confere('data inválida', isset($erros('geral.data_iso', '2027-02-30')['geral.da
 confere('UF inválida', isset($erros('geral.uf', 'XX')['geral.uf']), true);
 confere('prazo depois do evento', isset($erros('inscricoes.prazo_iso', '2027-03-15')['inscricoes.prazo_iso']), true);
 confere('prazo vazio = sem prazo', $erros('inscricoes.prazo_iso', ''), []);
+confere('lista pública desligada por padrão', $v($valida)['dados']['lista_inscritos_publica'] ?? null, false);
+$com_lista = $valida;
+$com_lista['inscricoes']['lista_publica'] = '1';
+confere('lista pública ligada', $v($com_lista)['dados']['lista_inscritos_publica'] ?? null, true);
+confere('formulário traz a lista ligada', evento_para_formulario(array_merge($atual, ['lista_inscritos_publica' => true]))['inscricoes']['lista_publica'] ?? null, '1');
+confere('formulário sem a lista', isset(evento_para_formulario(array_merge($atual, ['lista_inscritos_publica' => false]))['inscricoes']['lista_publica']), false);
 confere('início guardado', $v($valida)['dados']['inscricoes_inicio'], '2026-12-01T12:00');
 confere('início vazio = sem início programado', $erros('inscricoes.inicio', ''), []);
 confere('início inválido', isset($erros('inscricoes.inicio', '2026-13-01T12:00')['inscricoes.inicio']), true);

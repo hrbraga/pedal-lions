@@ -24,6 +24,9 @@ $banner = imagem_opcional('banner.png'); // Se existir assets/img/banner.jpg, el
                 <p class="hero__inicio"><?= e(inscricoes_texto_fechamento($fechamento)) ?></p>
             <?php endif; ?>
             <a class="btn btn--contorno" href="rotas.php">Ver rotas</a>
+            <?php if (!empty($ev['lista_inscritos_publica'])): ?>
+                <a class="btn btn--contorno" href="inscritos.php">Ver inscritos</a>
+            <?php endif; ?>
             <a class="btn btn--contorno" href="avatar.php">Eu vou!</a>
         </div>
 

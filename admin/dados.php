@@ -425,6 +425,10 @@ require __DIR__ . '/_topo.php';
             <input type="checkbox" name="inscricoes[abertas]" value="1"<?= valor_de($f, 'inscricoes.abertas') !== '' ? ' checked' : '' ?>>
             Inscrições abertas <small>(desmarque para fechar; com início programado, abrem sozinhas no dia e hora marcados)</small>
         </label>
+        <label class="adm-check">
+            <input type="checkbox" name="inscricoes[lista_publica]" value="1"<?= valor_de($f, 'inscricoes.lista_publica') !== '' ? ' checked' : '' ?>>
+            Mostrar a lista de inscritos no site <small>(página Inscritos, só as pagas: nome, cidade e equipe)</small>
+        </label>
         <div class="adm-grade">
             <?= adm_campo($f, $erros, 'inscricoes.inicio', 'Início das inscrições (data e hora; em branco = abrem já)', 'datetime-local') ?>
             <?= adm_campo($f, $erros, 'inscricoes.prazo_iso', 'Último dia para se inscrever (em branco = sem prazo)', 'date') ?>

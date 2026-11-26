@@ -899,3 +899,23 @@ dialog.modal p { margin: 0; color: var(--suave); }
 .avatar__aviso { margin: 0; min-height: 1.6em; color: var(--erro); font-weight: 500; }
 .avatar__aviso:empty { min-height: 0; }
 .avatar__privacidade { margin: 0; color: var(--suave); font-size: .95rem; }
+
+/* Lista pública de inscritos */
+.lista-busca { max-width: 480px; margin-bottom: 1.5rem; }
+.lista-busca label { display: block; font-weight: 600; margin-bottom: .35rem; }
+.lista-busca input { width: 100%; font: inherit; padding: .75rem .9rem; border: 2px solid var(--linha); border-radius: 10px; background: #fff; }
+.lista-busca input:focus { outline: none; border-color: var(--azul); }
+.lista-busca__vazio { margin: .75rem 0 0; color: var(--suave); }
+.lista-grupos { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.25rem 2rem; align-items: start; }
+@media (max-width: 760px) { .lista-grupos { grid-template-columns: 1fr; } }
+.lista-grupo { background: #fff; border-radius: 12px; padding: 1rem 1.25rem; border-top: 4px solid var(--azul); }
+.lista-grupo[hidden] { display: none; }
+.lista-grupo h2 { font-size: 1.35rem; margin: 0 0 .5rem; display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; }
+.lista-grupo h2 small { font-size: .95rem; color: var(--suave); font-weight: 600; }
+.lista-grupo__vazio { color: var(--suave); margin: 0; }
+.lista-pessoas { margin: 0; padding-left: 1.6rem; }
+.lista-pessoas li { padding: .4rem 0; border-bottom: 1px solid var(--linha); }
+.lista-pessoas li:last-child { border-bottom: 0; }
+.lista-pessoas li[hidden] { display: none; }
+.lista-pessoas strong { display: block; }
+.lista-pessoas span { color: var(--suave); font-size: .92rem; }
