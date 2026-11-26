@@ -177,5 +177,17 @@ confere('patrocinadores: só arquivos da pasta e só o preenchido', $v($patro)['
 ]);
 confere('patrocinador com link inválido', isset($erros('patrocinadores', ['royal.png' => ['nome' => '', 'url' => 'javascript:alert(1)']])['patrocinadores.royal.png.url']), true);
 
+$form = evento_para_formulario($atual);
+$ida_volta = $v($form);
+confere('formulário do evento atual valida sem erros', $ida_volta['erros'], []);
+confere('ida e volta mantém categorias', $ida_volta['dados']['categorias'], $atual['categorias']);
+confere('ida e volta mantém programação e FAQ', [$ida_volta['dados']['programacao'], $ida_volta['dados']['faq']], [$atual['programacao'], $atual['faq']]);
+confere('ida e volta mantém o token do mapa', $ida_volta['dados']['rotas'][1]['mapa']['token'] ?? null, 'l13f0AIscPIsA_34ehX9L-n_FDQqmDkEVxv70Sxa3rc');
+confere('formulário traz os logos da pasta', array_keys($form['patrocinadores']), ['Galdini.png', 'pebaaobruto.png', 'royal.png', 'vital.jpg']);
+confere('taxa sem casas desnecessárias', $form['inscricoes']['taxa'], '10');
+$fechado = $atual;
+$fechado['inscricoes_abertas'] = false;
+confere('inscrições fechadas = checkbox desmarcado', isset(evento_para_formulario($fechado)['inscricoes']['abertas']), false);
+
 echo $falhas ? "\n$falhas falha(s)\n" : "\ntodos passaram\n";
 exit($falhas ? 1 : 0);

@@ -152,6 +152,71 @@ function itens_de(array $entrada, string $secao, array $campos): array
     return $itens;
 }
 
+/** Nome dos arquivos de logo na pasta de patrocinadores, em ordem. */
+function patrocinadores_arquivos(): array
+{
+    return array_map(function ($p) {
+        return rawurldecode(basename($p['arquivo']));
+    }, patrocinadores());
+}
+
+/** Converte os dados do evento no formato do formulário do painel (o mesmo que evento_validar recebe). */
+function evento_para_formulario(array $ev): array
+{
+    $dinheiro = function ($v) {
+        return number_format((float) $v, 2, ',', '');
+    };
+    $conhecidos = mapas_conhecidos($ev);
+    $patro = [];
+    foreach (patrocinadores_arquivos() as $arq) {
+        $info = $ev['patrocinadores_info'][$arq] ?? [];
+        $patro[$arq] = ['nome' => (string) ($info['nome'] ?? ''), 'url' => (string) ($info['url'] ?? '')];
+    }
+    $taxa = (float) ($ev['taxa_administracao']['percentual'] ?? 0);
+    return [
+        'geral' => [
+            'nome' => $ev['nome'] ?? '', 'organizador' => $ev['organizador'] ?? '', 'data_iso' => $ev['data_iso'] ?? '',
+            'cidade' => $ev['cidade'] ?? '', 'uf' => $ev['uf'] ?? '', 'local_largada' => $ev['local_largada'] ?? '',
+        ],
+        'inscricoes' => array_merge(
+            !empty($ev['inscricoes_abertas']) ? ['abertas' => '1'] : [],
+            [
+                'prazo_iso' => (string) ($ev['inscricoes_prazo_iso'] ?? ''),
+                'vagas'     => (string) ($ev['inscricoes_vagas'] ?? 0),
+                'taxa'      => rtrim(rtrim(number_format($taxa, 2, ',', ''), '0'), ','),
+            ]
+        ),
+        'contato' => [
+            'email' => $ev['contato']['email'] ?? '', 'whatsapp' => $ev['contato']['whatsapp'] ?? '',
+            'instagram' => $ev['contato']['instagram'] ?? '',
+        ],
+        'camiseta' => [
+            'valor' => $dinheiro($ev['camiseta']['valor'] ?? 0), 'prazo_iso' => $ev['camiseta']['prazo_iso'] ?? '',
+            'tamanhos' => array_values($ev['camiseta']['tamanhos'] ?? []),
+        ],
+        'categorias' => array_map(function ($c) use ($dinheiro) {
+            return ['slug' => $c['slug'], 'nome' => $c['nome'], 'valor' => $dinheiro($c['valor']), 'resumo' => $c['resumo'] ?? ''];
+        }, $ev['categorias'] ?? []),
+        'premiacoes' => array_map(function ($p) {
+            return ['titulo' => $p['titulo'] ?? '', 'regra' => $p['regra'] ?? '', 'premio' => $p['premio'] ?? ''];
+        }, $ev['premiacoes'] ?? []),
+        'rotas' => array_map(function ($r) use ($conhecidos) {
+            $m = $r['mapa'] ?? strava_extrair((string) ($r['mapa_embed'] ?? '')) ?? strava_extrair((string) ($r['mapa_url'] ?? ''));
+            return [
+                'nome' => $r['nome'] ?? '', 'distancia' => $r['distancia'] ?? '', 'altimetria' => $r['altimetria'] ?? '',
+                'descricao' => $r['descricao'] ?? '', 'mapa' => $m ? strava_link($m) : '',
+            ];
+        }, $ev['rotas'] ?? []),
+        'programacao' => array_map(function ($p) {
+            return ['hora' => $p['hora'] ?? '', 'titulo' => $p['titulo'] ?? '', 'desc' => $p['desc'] ?? ''];
+        }, $ev['programacao'] ?? []),
+        'faq' => array_map(function ($p) {
+            return ['p' => $p['p'] ?? '', 'r' => $p['r'] ?? ''];
+        }, $ev['faq'] ?? []),
+        'patrocinadores' => $patro,
+    ];
+}
+
 /* ---------------------------------------------------------------------------
    Validação
    --------------------------------------------------------------------------- */

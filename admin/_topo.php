@@ -27,6 +27,7 @@ $logo_admin = imagem_opcional('logo.png');
         <nav class="adm-menu" aria-label="Painel">
             <a href="painel.php"<?= $menu_ativo === 'inscritos' ? ' aria-current="page"' : '' ?>>Inscritos</a>
             <a href="cupons.php"<?= $menu_ativo === 'cupons' ? ' aria-current="page"' : '' ?>>Cupons</a>
+            <a href="dados.php"<?= $menu_ativo === 'dados' ? ' aria-current="page"' : '' ?>>Dados do Evento</a>
             <a href="administradores.php"<?= $menu_ativo === 'admins' ? ' aria-current="page"' : '' ?>>Administradores</a>
             <a href="exportar.php">Exportar CSV</a>
             <a href="../index.php" target="_blank" rel="noopener">Ver site</a>
