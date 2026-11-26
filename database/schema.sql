@@ -1,6 +1,6 @@
--- Esquema do banco (será usado na Etapa 2). Importe pelo phpMyAdmin do XAMPP.
-CREATE DATABASE IF NOT EXISTS pedal_solidario CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE pedal_solidario;
+-- Esquema do banco. No phpMyAdmin, SELECIONE o banco à esquerda e use Importar com este arquivo.
+-- Não cria nem escolhe banco: assim funciona com qualquer nome (XAMPP: pedal_solidario; Hostinger: u000000000_pedal).
+-- No XAMPP, crie antes o banco "pedal_solidario" (agrupamento utf8mb4_unicode_ci).
 
 CREATE TABLE IF NOT EXISTS inscricoes (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,

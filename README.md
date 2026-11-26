@@ -7,7 +7,7 @@
 
 ## Banco de dados (Etapa 2)
 1. Inicie Apache e MySQL no XAMPP.
-2. Abra http://localhost/phpmyadmin → aba **Importar** → escolha `database/schema.sql` → **Importar**.
+2. Abra http://localhost/phpmyadmin → crie o banco `pedal_solidario` (agrupamento `utf8mb4_unicode_ci`) → selecione-o → aba **Importar** → escolha `database/schema.sql` → **Importar**.
 3. Copie `config/banco.exemplo.php` para `config/banco.php` (no XAMPP: usuário `root`, senha vazia, `debug` true). O `banco.php` não vai para o git.
 4. Faça uma inscrição de teste e veja a tabela `inscricoes` no phpMyAdmin.
 
