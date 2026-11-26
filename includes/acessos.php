@@ -43,11 +43,14 @@ function acesso_pode(bool $total, array $paginas, string $pagina): bool
     return $total || in_array($pagina, $paginas, true);
 }
 
-/** Primeira página liberada, na ordem do menu; sem nenhuma, a página Minha conta. */
+/**
+ * Primeira página liberada, na ordem do menu; sem nenhuma, a página Minha conta.
+ * Exportar CSV não conta: é um download, não uma página para "cair" depois do login.
+ */
 function acesso_inicio(bool $total, array $paginas): string
 {
     foreach (ACESSO_PAGINAS as $chave => $p) {
-        if (acesso_pode($total, $paginas, $chave)) {
+        if ($chave !== 'exportar' && acesso_pode($total, $paginas, $chave)) {
             return $p['url'];
         }
     }

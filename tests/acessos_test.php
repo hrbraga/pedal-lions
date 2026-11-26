@@ -29,6 +29,9 @@ confere('não pode página não liberada', acesso_pode(false, ['cupons'], 'inscr
 confere('início com acesso total', acesso_inicio(true, []), 'painel.php');
 confere('início na ordem do menu', acesso_inicio(false, ['exportar', 'dados']), 'dados.php');
 confere('início sem páginas', acesso_inicio(false, []), 'conta.php');
+// Exportar CSV é um download, não uma página: não pode ser a página inicial (evita baixar arquivo no login e laço de redirecionamento)
+confere('início só com Exportar CSV', acesso_inicio(false, ['exportar']), 'conta.php');
+confere('início com Exportar e Cupons', acesso_inicio(false, ['exportar', 'cupons']), 'cupons.php');
 confere('descrição total', acesso_descricao(true, ['cupons']), 'Acesso total');
 confere('descrição lista', acesso_descricao(false, ['dados', 'inscritos']), 'Inscritos, Dados do Evento');
 confere('descrição vazia', acesso_descricao(false, []), 'Nenhuma página');
