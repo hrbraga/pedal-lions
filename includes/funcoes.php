@@ -5,6 +5,8 @@
 
 date_default_timezone_set('America/Sao_Paulo');
 
+require_once __DIR__ . '/patrocinadores.php';
+
 // No ambiente local (debug ligado em config/banco.php), mostra os erros do PHP na tela.
 (function () {
     $cfg = @include __DIR__ . '/../config/banco.php';
@@ -154,21 +156,46 @@ function cpf_formatado(string $cpf): string
         : $cpf;
 }
 
-/**
- * Patrocinadores: lê as imagens da pasta assets/img/patrocinadores/.
- * Basta colocar o arquivo na pasta para o logo entrar no carrossel (sem limite de quantidade).
- * A ordem segue o nome do arquivo (use 01-, 02-... no começo para controlar a ordem).
- * Nome e link são opcionais e ficam em 'patrocinadores_info' no config/evento.php.
- */
+/** Patrocinadores do carrossel da página inicial (logo, endereço da imagem, nome e link). */
 function patrocinadores(): array
 {
-    $pasta = __DIR__ . '/../assets/img/patrocinadores';
+    return patrocinadores_de(evento(), patro_raiz());
+}
+
+/**
+ * Patrocinadores a partir dos dados do evento:
+ *  - com a lista 'patrocinadores' (cuidada no painel): segue a ordem dela e pula logo inválido ou que sumiu;
+ *  - sem a lista (nada salvo ainda no formato novo): lê a pasta assets/img/patrocinadores/, em ordem de nome,
+ *    com nome e link opcionais de 'patrocinadores_info' (formato antigo).
+ * Cada item: ['logo' => caminho, 'arquivo' => endereço para o HTML, 'nome' => texto, 'url' => link ou ''].
+ */
+function patrocinadores_de(array $ev, string $raiz): array
+{
+    $link = function ($url): string {
+        $url = (string) $url;
+        return preg_match('#^https?://#i', $url) ? $url : '';
+    };
+
+    if (isset($ev['patrocinadores']) && is_array($ev['patrocinadores'])) {
+        $lista = [];
+        foreach ($ev['patrocinadores'] as $p) {
+            $logo = is_array($p) ? (string) ($p['logo'] ?? '') : '';
+            if (!patro_logo_valido($logo, $raiz)) {
+                continue;
+            }
+            $nome = trim((string) ($p['nome'] ?? ''));
+            $lista[] = ['logo' => $logo, 'arquivo' => patro_url($logo), 'nome' => $nome !== '' ? $nome : 'Patrocinador', 'url' => $link($p['url'] ?? '')];
+        }
+        return $lista;
+    }
+
+    $pasta = $raiz . '/' . PATRO_PASTA_ANTIGA;
     if (!is_dir($pasta)) {
         return [];
     }
 
     $permitidas = ['png', 'jpg', 'jpeg', 'webp', 'svg', 'gif'];
-    $info       = evento()['patrocinadores_info'] ?? [];
+    $info       = is_array($ev['patrocinadores_info'] ?? null) ? $ev['patrocinadores_info'] : [];
     $arquivos   = [];
 
     foreach (scandir($pasta) ?: [] as $arq) {
@@ -188,16 +215,14 @@ function patrocinadores(): array
         $nome = preg_replace('/^\d+[\s._-]*/', '', $nome) ?? $nome;   // tira o "01-" do começo
         $nome = trim(str_replace(['_', '-'], ' ', $nome));
 
-        $extra = $info[$arq] ?? [];
-        $url   = (string) ($extra['url'] ?? '');
-        if (!preg_match('#^https?://#i', $url)) {
-            $url = '';
-        }
+        $extra = is_array($info[$arq] ?? null) ? $info[$arq] : [];
+        $logo  = PATRO_PASTA_ANTIGA . '/' . $arq;
 
         $lista[] = [
-            'arquivo' => 'assets/img/patrocinadores/' . rawurlencode($arq),
+            'logo'    => $logo,
+            'arquivo' => patro_url($logo),
             'nome'    => (string) ($extra['nome'] ?? ($nome !== '' ? $nome : 'Patrocinador')),
-            'url'     => $url,
+            'url'     => $link($extra['url'] ?? ''),
         ];
     }
     return $lista;

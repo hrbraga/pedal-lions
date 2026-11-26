@@ -52,7 +52,7 @@ function entrada_de(array $ev): array
         }, $ev['rotas']),
         'programacao' => $ev['programacao'],
         'faq' => $ev['faq'],
-        'patrocinadores' => [],
+        'patrocinadores' => [['logo' => 'assets/img/patrocinadores/royal.png', 'nome' => 'Royal', 'url' => '']],
     ];
 }
 
@@ -177,15 +177,32 @@ confere('texto com HTML fica como texto', $v($html_texto)['dados']['faq'][0]['r'
 
 $patro = $valida;
 $patro['patrocinadores'] = [
-    'royal.png'      => ['nome' => 'Royal', 'url' => 'https://royal.com.br'],
-    'vital.jpg'      => ['nome' => '', 'url' => ''],
-    'nao-existe.png' => ['nome' => 'X', 'url' => ''],
-    '../config.php'  => ['nome' => 'X', 'url' => ''],
+    ['logo' => 'assets/img/patrocinadores/royal.png', 'nome' => 'Royal', 'url' => 'https://royal.com.br'],
+    ['logo' => 'assets/img/patrocinadores/vital.jpg', 'nome' => 'Vital', 'url' => ''],
 ];
-confere('patrocinadores: só arquivos da pasta e só o preenchido', $v($patro)['dados']['patrocinadores_info'], [
-    'royal.png' => ['nome' => 'Royal', 'url' => 'https://royal.com.br'],
+confere('patrocinadores: lista na ordem, link só quando há', $v($patro)['dados']['patrocinadores'], [
+    ['logo' => 'assets/img/patrocinadores/royal.png', 'nome' => 'Royal', 'url' => 'https://royal.com.br'],
+    ['logo' => 'assets/img/patrocinadores/vital.jpg', 'nome' => 'Vital'],
 ]);
-confere('patrocinador com link inválido', isset($erros('patrocinadores', ['royal.png' => ['nome' => '', 'url' => 'javascript:alert(1)']])['patrocinadores.royal.png.url']), true);
+confere('patrocinadores: não grava mais o formato antigo', array_key_exists('patrocinadores_info', $v($patro)['dados']), false);
+foreach (['../config/banco.php', 'assets/img/patrocinadores/../../config/banco.php', 'uploads/patrocinadores/0123456789abcdef.php', 'https://x.com/a.png', ''] as $forjado) {
+    confere("logo forjado recusado: $forjado", $erros('patrocinadores.0.logo', $forjado)['patrocinadores.0.logo'] ?? null, 'Envie o logo do patrocinador.');
+}
+confere('patrocinador sem nome', isset($erros('patrocinadores.0.nome', '')['patrocinadores.0.nome']), true);
+confere('patrocinador com link inválido', isset($erros('patrocinadores.0.url', 'javascript:alert(1)')['patrocinadores.0.url']), true);
+
+confere('site: lista salva na ordem, pula logo sumido, nome padrão',
+    array_map(fn($p) => [$p['arquivo'], $p['nome']], patrocinadores_de(['patrocinadores' => [
+        ['logo' => 'assets/img/patrocinadores/vital.jpg', 'nome' => 'Vital'],
+        ['logo' => 'uploads/patrocinadores/ffffffffffffffff.png', 'nome' => 'Sumiu'],
+        ['logo' => 'assets/img/patrocinadores/royal.png', 'nome' => ''],
+    ]], patro_raiz())),
+    [['assets/img/patrocinadores/vital.jpg', 'Vital'], ['assets/img/patrocinadores/royal.png', 'Patrocinador']]);
+confere('site: lista vazia salva = nenhum patrocinador', patrocinadores_de(['patrocinadores' => []], patro_raiz()), []);
+confere('site: sem lista = pasta antiga', count(patrocinadores_de(['patrocinadores_info' => []], patro_raiz())), 4);
+confere('site: pasta antiga com nome e link do formato antigo',
+    array_values(array_filter(patrocinadores_de(['patrocinadores_info' => ['royal.png' => ['nome' => 'Royal Ltda', 'url' => 'https://royal.com.br']]], patro_raiz()),
+        fn($p) => $p['logo'] === 'assets/img/patrocinadores/royal.png'))[0]['url'] ?? null, 'https://royal.com.br');
 
 $form = evento_para_formulario($atual);
 $ida_volta = $v($form);
@@ -193,7 +210,10 @@ confere('formulário do evento atual valida sem erros', $ida_volta['erros'], [])
 confere('ida e volta mantém categorias', $ida_volta['dados']['categorias'], $atual['categorias']);
 confere('ida e volta mantém programação e FAQ', [$ida_volta['dados']['programacao'], $ida_volta['dados']['faq']], [$atual['programacao'], $atual['faq']]);
 confere('ida e volta mantém o token do mapa', $ida_volta['dados']['rotas'][1]['mapa']['token'] ?? null, 'l13f0AIscPIsA_34ehX9L-n_FDQqmDkEVxv70Sxa3rc');
-confere('formulário traz os logos da pasta', array_keys($form['patrocinadores']), ['Galdini.png', 'pebaaobruto.png', 'royal.png', 'vital.jpg']);
+confere('formulário traz os logos da pasta antiga, com nome', array_column($form['patrocinadores'], 'logo'),
+    ['assets/img/patrocinadores/Galdini.png', 'assets/img/patrocinadores/pebaaobruto.png', 'assets/img/patrocinadores/royal.png', 'assets/img/patrocinadores/vital.jpg']);
+confere('formulário: nome de cada patrocinador preenchido', count(array_filter(array_column($form['patrocinadores'], 'nome'))), 4);
+confere('ida e volta mantém os patrocinadores', array_column($ida_volta['dados']['patrocinadores'], 'logo'), array_column($form['patrocinadores'], 'logo'));
 confere('taxa sem casas desnecessárias', $form['inscricoes']['taxa'], '10');
 $fechado = $atual;
 $fechado['inscricoes_abertas'] = false;

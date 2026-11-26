@@ -152,25 +152,16 @@ function itens_de(array $entrada, string $secao, array $campos): array
     return $itens;
 }
 
-/** Nome dos arquivos de logo na pasta de patrocinadores, em ordem. */
-function patrocinadores_arquivos(): array
-{
-    return array_map(function ($p) {
-        return rawurldecode(basename($p['arquivo']));
-    }, patrocinadores());
-}
-
 /** Converte os dados do evento no formato do formulário do painel (o mesmo que evento_validar recebe). */
 function evento_para_formulario(array $ev): array
 {
     $dinheiro = function ($v) {
         return number_format((float) $v, 2, ',', '');
     };
-    $patro = [];
-    foreach (patrocinadores_arquivos() as $arq) {
-        $info = $ev['patrocinadores_info'][$arq] ?? [];
-        $patro[$arq] = ['nome' => (string) ($info['nome'] ?? ''), 'url' => (string) ($info['url'] ?? '')];
-    }
+    // Logos da lista salva ou, antes do primeiro Salvar no formato novo, os da pasta antiga (já com nome)
+    $patro = array_map(function ($p) {
+        return ['logo' => $p['logo'], 'nome' => $p['nome'], 'url' => $p['url']];
+    }, patrocinadores_de($ev, patro_raiz()));
     $taxa = (float) ($ev['taxa_administracao']['percentual'] ?? 0);
     return [
         'geral' => [
@@ -427,30 +418,22 @@ function evento_validar(array $entrada, array $atual, array $categorias_com_insc
         ];
     }
 
-    // Patrocinadores: só logos que existem na pasta; guarda só o que foi preenchido
-    $pasta = __DIR__ . '/../assets/img/patrocinadores/';
-    $dados['patrocinadores_info'] = [];
-    foreach ((is_array($entrada['patrocinadores'] ?? null) ? $entrada['patrocinadores'] : []) as $arquivo => $info) {
-        $arquivo = (string) $arquivo;
-        if (!is_array($info) || $arquivo !== basename($arquivo) || $arquivo[0] === '.' || !is_file($pasta . $arquivo)) {
-            continue;
+    // Patrocinadores: lista na ordem do carrossel; o logo só pode ser um arquivo enviado pelo painel ou da pasta antiga
+    $dados['patrocinadores'] = [];
+    foreach (itens_de($entrada, 'patrocinadores', ['logo', 'nome', 'url']) as $n => $it) {
+        $p = "patrocinadores.$n";
+        if (!patro_logo_valido($it['logo'], patro_raiz())) {
+            $erros["$p.logo"] = 'Envie o logo do patrocinador.';
         }
-        $p = "patrocinadores.$arquivo";
-        $nome = $texto($info, 'nome', "$p.nome", 100, false, 'o nome');
-        $url = campo($info, 'url');
+        $item = ['logo' => $it['logo'], 'nome' => $texto($it, 'nome', "$p.nome", 100, true, 'o nome')];
+        $url = $it['url'];
         if ($url !== '' && (!preg_match('#^https?://#i', $url) || !filter_var($url, FILTER_VALIDATE_URL) || mb_strlen($url) > 300)) {
             $erros["$p.url"] = 'Use o link completo, começando com https://';
-        }
-        $item = [];
-        if ($nome !== '') {
-            $item['nome'] = $nome;
         }
         if ($url !== '') {
             $item['url'] = $url;
         }
-        if ($item) {
-            $dados['patrocinadores_info'][$arquivo] = $item;
-        }
+        $dados['patrocinadores'][] = $item;
     }
 
     return ['dados' => $dados, 'erros' => $erros];

@@ -37,8 +37,9 @@ return [
         'grupo_whatsapp' => 'https://chat.whatsapp.com/HyYQvEQrZI3EgD4SsUKgoY?s=sw&p=a&mlu=4&ilr=4',
     ],
 
-    // Patrocinadores: os logos são lidos da pasta assets/img/patrocinadores/ (veja o LEIAME.txt dela).
-    // Opcional: nome (texto alternativo) e link de cada patrocinador, pelo NOME DO ARQUIVO. Exemplo:
+    // Patrocinadores: agora são cuidados no painel (Dados do Evento → Patrocinadores): enviar, trocar, ordenar e excluir.
+    // Enquanto nada for salvo lá, o site mostra os logos da pasta assets/img/patrocinadores/ com nome e link abaixo
+    // (formato antigo, pelo NOME DO ARQUIVO). Exemplo:
     //   '01-empresa-x.png' => ['nome' => 'Empresa X', 'url' => 'https://www.empresax.com.br'],
     'patrocinadores_info' => [
     ],
