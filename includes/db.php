@@ -71,6 +71,34 @@ function esquema_atualizar(PDO $pdo): void
             ) ENGINE=InnoDB");
         }
 
+        // Financeiro: categorias de entrada/saída e lançamentos manuais
+        if (!$pdo->query("SHOW TABLES LIKE 'fin_categorias'")->fetch()) {
+            $pdo->exec("CREATE TABLE fin_categorias (
+                id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                tipo ENUM('entrada','saida') NOT NULL,
+                nome VARCHAR(60) NOT NULL,
+                ativa TINYINT(1) NOT NULL DEFAULT 1,
+                criado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY uq_tipo_nome (tipo, nome)
+            ) ENGINE=InnoDB");
+        }
+        if (!$pdo->query("SHOW TABLES LIKE 'fin_lancamentos'")->fetch()) {
+            $pdo->exec("CREATE TABLE fin_lancamentos (
+                id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                tipo ENUM('entrada','saida') NOT NULL,
+                categoria_id INT UNSIGNED NOT NULL,
+                data DATE NOT NULL,
+                descricao VARCHAR(200) NOT NULL,
+                valor DECIMAL(10,2) NOT NULL,
+                criado_por VARCHAR(50) NOT NULL,
+                criado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                alterado_por VARCHAR(50) NULL,
+                alterado_em DATETIME NULL,
+                INDEX idx_data (data),
+                INDEX idx_categoria (categoria_id)
+            ) ENGINE=InnoDB");
+        }
+
         // Níveis de acesso: quem já existia continua com acesso total
         if ($pdo->query("SHOW TABLES LIKE 'admins'")->fetch()
             && !$pdo->query("SHOW COLUMNS FROM admins LIKE 'acesso_total'")->fetch()) {
