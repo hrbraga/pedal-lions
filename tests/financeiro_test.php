@@ -101,5 +101,14 @@ $c = fin_balancete([
 ], [], '', '');
 confere('centavos exatos: 0,10 + 0,20', $c['total_entradas'], 30);
 
+// Categoria manual com o nome de um automático: os dois valores somam (nada some dos totais) e o nome é recusado no cadastro
+$mesmo = fin_balancete([['id' => 9, 'data' => '2026-12-05', 'tipo' => 'entrada', 'categoria' => 'Inscrições', 'descricao' => 'dinheiro no dia', 'valor' => 5000, 'criado_por' => 'x']],
+    [['data' => '2026-12-05', 'tipo' => 'entrada', 'rotulo' => 'Inscrições', 'valor' => 6000, 'qtd' => 1]], '', '');
+confere('mesmo nome: entradas somadas', $mesmo['entradas'], ['Inscrições' => 11000]);
+confere('mesmo nome: total igual ao saldo da última linha', [$mesmo['total_entradas'], $mesmo['saldo_final']], [11000, end($mesmo['linhas'])['saldo']]);
+confere('nome reservado: Inscrições', fin_nome_reservado(' inscrições '), true);
+confere('nome reservado: Repasse', fin_nome_reservado('Repasse da taxa de administração'), true);
+confere('nome livre', fin_nome_reservado('Inscrições em dinheiro'), false);
+
 echo $falhas ? "\n$falhas falha(s)\n" : "\nTudo certo\n";
 exit($falhas ? 1 : 0);

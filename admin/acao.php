@@ -34,7 +34,7 @@ try {
 
     switch ($acao) {
         case 'pago':
-            $pdo->prepare("UPDATE inscricoes SET status = 'pago', pago_em = NOW() WHERE id = :id")->execute([':id' => $id]);
+            $pdo->prepare("UPDATE inscricoes SET status = 'pago', pago_em = COALESCE(pago_em, NOW()) WHERE id = :id")->execute([':id' => $id]);
             flash('ok', 'Pagamento confirmado: ' . $insc['nome'] . '.');
             break;
 

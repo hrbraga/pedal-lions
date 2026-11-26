@@ -209,8 +209,15 @@ function fin_balancete(array $manuais, array $automaticos, string $de, string $a
     };
     ksort($grupos['manual']['entrada'], SORT_STRING | SORT_FLAG_CASE);
     ksort($grupos['manual']['saida'], SORT_STRING | SORT_FLAG_CASE);
-    $entradas = $grupos['manual']['entrada'] + $ordenar_auto($grupos['auto']['entrada']);
-    $saidas = $grupos['manual']['saida'] + $ordenar_auto($grupos['auto']['saida']);
+    // Soma (não sobrescreve): uma categoria manual com o mesmo nome de um automático não pode esconder valores
+    $juntar = function (array $manual, array $auto): array {
+        foreach ($auto as $rotulo => $c) {
+            $manual[$rotulo] = ($manual[$rotulo] ?? 0) + $c;
+        }
+        return $manual;
+    };
+    $entradas = $juntar($grupos['manual']['entrada'], $ordenar_auto($grupos['auto']['entrada']));
+    $saidas = $juntar($grupos['manual']['saida'], $ordenar_auto($grupos['auto']['saida']));
     $total_e = array_sum($entradas);
     $total_s = array_sum($saidas);
     return [
@@ -222,6 +229,18 @@ function fin_balancete(array $manuais, array $automaticos, string $de, string $a
         'saldo_final'    => $anterior + $total_e - $total_s,
         'linhas'         => $linhas,
     ];
+}
+
+/** Nome que não pode ser usado em categoria manual (é de um valor automático), sem diferenciar maiúsculas. */
+function fin_nome_reservado(string $nome): bool
+{
+    $n = mb_strtolower(trim($nome));
+    foreach (array_keys(FIN_AUTO) as $rotulo) {
+        if (mb_strtolower($rotulo) === $n) {
+            return true;
+        }
+    }
+    return false;
 }
 
 /* ---------------------------------------------------------------------------

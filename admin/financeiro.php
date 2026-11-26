@@ -97,6 +97,8 @@ if ($pdo && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 $tipo = post_txt('tipo');
                 if ($nome === '' || mb_strlen($nome) > 60) {
                     flash('erro', 'O nome da categoria deve ter de 1 a 60 caracteres.');
+                } elseif (fin_nome_reservado($nome)) {
+                    flash('erro', 'O nome "' . $nome . '" é usado pelos valores automáticos das inscrições. Escolha outro (ex.: "' . $nome . ' em dinheiro").');
                 } elseif ($acao === 'cat_criar' && !isset(FIN_TIPOS[$tipo])) {
                     flash('erro', 'Escolha se a categoria é de entrada ou de saída.');
                 } else {
@@ -138,8 +140,11 @@ if ($pdo && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 } elseif ((int) $cat['usos'] > 0) {
                     flash('erro', 'A categoria "' . $cat['nome'] . '" tem lançamentos e não pode ser excluída. Desative-a para que não apareça mais nos novos lançamentos.');
                 } else {
-                    $pdo->prepare('DELETE FROM fin_categorias WHERE id = :id')->execute([':id' => $id]);
-                    flash('ok', 'Categoria "' . $cat['nome'] . '" excluída.');
+                    // Confere de novo na hora de apagar: alguém pode ter lançado nela neste instante
+                    $st = $pdo->prepare('DELETE FROM fin_categorias WHERE id = :id AND NOT EXISTS (SELECT 1 FROM fin_lancamentos WHERE categoria_id = :id2)');
+                    $st->execute([':id' => $id, ':id2' => $id]);
+                    flash($st->rowCount() ? 'ok' : 'erro', $st->rowCount() ? 'Categoria "' . $cat['nome'] . '" excluída.'
+                        : 'A categoria "' . $cat['nome'] . '" tem lançamentos e não pode ser excluída. Desative-a para que não apareça mais nos novos lançamentos.');
                 }
                 header('Location: ' . $aqui . '#categorias');
                 exit;
@@ -311,7 +316,8 @@ $erro_campo = function (string $campo) use ($erros): string {
             <tr class="adm-balancete__saldo"><th>Saldo</th><th class="num"><?= e(fin_moeda($b['saldo_final'])) ?></th></tr>
         </table>
         <p class="adm-nota">Automáticos: inscrições, camisetas e taxas pagas, pela data em que o pagamento foi confirmado.
-            A taxa de administração entra e sai (repasse) no mesmo valor.</p>
+            A taxa de administração entra e sai (repasse) no mesmo valor. Diferente da tela Inscritos, aqui as inscrições pagas e
+            depois canceladas continuam (não há reembolso).</p>
     </section>
     <?php endif; ?>
 </div>
