@@ -33,7 +33,7 @@ $saida = fopen('php://output', 'w');
 fwrite($saida, "\xEF\xBB\xBF"); // BOM para o Excel reconhecer acentos
 
 $cabecalho = ['Código', 'Nome', 'CPF', 'Nascimento', 'Sexo', 'E-mail', 'WhatsApp', 'Cidade', 'UF', 'Categoria', 'Equipe',
-              'Camiseta', 'Contato de emergência', 'Telefone de emergência', 'Saúde',
+              'Modelo da camiseta', 'Camiseta', 'Contato de emergência', 'Telefone de emergência', 'Saúde',
               'Valor inscrição', 'Taxa de administração', 'Cupom', 'Desconto', 'Valor camiseta', 'Valor total', 'Situação', 'Pago em', 'Inscrito em'];
 fputcsv($saida, $cabecalho, ';', '"', '');
 
@@ -51,6 +51,7 @@ while ($i = $st->fetch()) {
         $i['uf'],
         $cat['nome'] ?? $i['categoria'],
         celula($i['equipe']),
+        $i['camiseta_tamanho'] ? camiseta_modelo_nome($i['camiseta_modelo'] ?? null) : '',
         $i['camiseta_tamanho'] ?? '',
         celula($i['emerg_nome']),
         telefone_formatado($i['emerg_tel']),

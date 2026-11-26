@@ -113,6 +113,16 @@ function camiseta_modelo(string $slug): ?array
     return null;
 }
 
+/** Nome do modelo para exibir (painel, CSV): nome atual, o identificador se o modelo foi removido, ou '—'. */
+function camiseta_modelo_nome(?string $slug): string
+{
+    if ($slug === null || $slug === '') {
+        return '—';
+    }
+    $m = camiseta_modelo($slug);
+    return $m ? $m['nome'] : $slug;
+}
+
 function camiseta_aberta(): bool
 {
     $prazo = evento()['camiseta']['prazo_iso'] ?? '';

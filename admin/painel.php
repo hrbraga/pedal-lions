@@ -26,8 +26,9 @@ try {
     foreach ($pdo->query('SELECT categoria, status, COUNT(*) AS n FROM inscricoes WHERE status <> \'cancelado\' GROUP BY categoria, status') as $r) {
         $por_categoria[$r['categoria']][$r['status']] = (int) $r['n'];
     }
-    foreach ($pdo->query('SELECT camiseta_tamanho AS t, status, COUNT(*) AS n FROM inscricoes WHERE camiseta_tamanho IS NOT NULL AND status <> \'cancelado\' GROUP BY camiseta_tamanho, status') as $r) {
-        $por_tamanho[$r['t']][$r['status']] = (int) $r['n'];
+    // Camisetas por modelo × tamanho ('' = inscrição de antes dos modelos)
+    foreach ($pdo->query('SELECT COALESCE(camiseta_modelo, \'\') AS m, camiseta_tamanho AS t, status, COUNT(*) AS n FROM inscricoes WHERE camiseta_tamanho IS NOT NULL AND status <> \'cancelado\' GROUP BY m, camiseta_tamanho, status') as $r) {
+        $por_tamanho[$r['m']][$r['t']][$r['status']] = (int) $r['n'];
     }
 
     // Lista filtrada
@@ -117,18 +118,43 @@ require __DIR__ . '/_topo.php';
         </div>
     </div>
     <div>
-        <h2>Camisetas por tamanho</h2>
+        <h2>Camisetas por modelo e tamanho</h2>
+        <?php
+        // Linhas: os modelos atuais e, se houver, modelos removidos ou inscrições de antes dos modelos
+        $tamanhos_cam = $ev['camiseta']['tamanhos'];
+        $linhas_cam = array_column(camiseta_modelos($ev['camiseta']), 'slug');
+        foreach (array_keys($por_tamanho) as $m) {
+            if (!in_array((string) $m, $linhas_cam, true)) {
+                $linhas_cam[] = (string) $m;
+            }
+        }
+        $celula_cam = function (int $p, int $n): string {
+            return $p . ($n > 0 ? ' (+' . $n . ')' : '');
+        };
+        $col_p = array_fill_keys($tamanhos_cam, 0);
+        $col_n = array_fill_keys($tamanhos_cam, 0);
+        ?>
+        <p class="adm-nota">Pagas; entre parênteses, as pendentes.</p>
         <div class="adm-rolagem">
-            <table class="adm-tabela adm-tabela--compacta">
-                <thead><tr><th>Tamanho</th><th class="num">Pagas</th><th class="num">Pendentes</th></tr></thead>
+            <table class="adm-tabela adm-tabela--compacta" data-camisetas>
+                <thead><tr><th>Modelo</th><?php foreach ($tamanhos_cam as $t): ?><th class="num"><?= e($t) ?></th><?php endforeach; ?><th class="num">Total</th></tr></thead>
                 <tbody>
-                <?php $soma_p = 0; $soma_n = 0; ?>
-                <?php foreach ($ev['camiseta']['tamanhos'] as $t): ?>
-                    <?php $p = (int) ($por_tamanho[$t]['pago'] ?? 0); $n = (int) ($por_tamanho[$t]['pendente'] ?? 0); $soma_p += $p; $soma_n += $n; ?>
-                    <tr><td><?= e($t) ?></td><td class="num"><?= $p ?></td><td class="num"><?= $n ?></td></tr>
+                <?php foreach ($linhas_cam as $m): ?>
+                    <?php $lin_p = 0; $lin_n = 0; ?>
+                    <tr>
+                        <td><?= e($m === '' ? 'Sem modelo' : camiseta_modelo_nome($m)) ?></td>
+                        <?php foreach ($tamanhos_cam as $t): ?>
+                            <?php $p = (int) ($por_tamanho[$m][$t]['pago'] ?? 0); $n = (int) ($por_tamanho[$m][$t]['pendente'] ?? 0);
+                                  $lin_p += $p; $lin_n += $n; $col_p[$t] += $p; $col_n[$t] += $n; ?>
+                            <td class="num"><?= e($celula_cam($p, $n)) ?></td>
+                        <?php endforeach; ?>
+                        <td class="num"><strong><?= e($celula_cam($lin_p, $lin_n)) ?></strong></td>
+                    </tr>
                 <?php endforeach; ?>
                 </tbody>
-                <tfoot><tr><th>Total</th><th class="num"><?= $soma_p ?></th><th class="num"><?= $soma_n ?></th></tr></tfoot>
+                <tfoot><tr><th>Total</th>
+                    <?php foreach ($tamanhos_cam as $t): ?><th class="num"><?= e($celula_cam($col_p[$t], $col_n[$t])) ?></th><?php endforeach; ?>
+                    <th class="num"><?= e($celula_cam(array_sum($col_p), array_sum($col_n))) ?></th></tr></tfoot>
             </table>
         </div>
     </div>

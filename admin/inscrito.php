@@ -99,7 +99,7 @@ if ($erro_banco): ?>
                 <dt>Valor da inscrição</dt><dd><?= e(moeda((float) $i['valor_inscricao'])) ?></dd>
                 <dt>Taxa de administração</dt><dd><?= e(moeda((float) $i['valor_taxa'])) ?></dd>
                 <dt>Cupom</dt><dd><?= !empty($i['cupom_codigo']) ? '<code>' . e($i['cupom_codigo']) . '</code> (desconto de ' . e(moeda((float) $i['valor_desconto'])) . ')' : '—' ?></dd>
-                <dt>Camiseta</dt><dd><?= $i['camiseta_tamanho'] ? e(moeda((float) $i['valor_camiseta'])) . ' (tamanho ' . e($i['camiseta_tamanho']) . ')' : 'Não' ?></dd>
+                <dt>Camiseta</dt><dd><?= $i['camiseta_tamanho'] ? e(moeda((float) $i['valor_camiseta'])) . ' (' . (!empty($i['camiseta_modelo']) ? e(camiseta_modelo_nome($i['camiseta_modelo'])) . ', ' : '') . 'tamanho ' . e($i['camiseta_tamanho']) . ')' : 'Não' ?></dd>
                 <dt>Total</dt><dd><strong><?= e(moeda((float) $i['valor_total'])) ?></strong></dd>
                 <dt>Situação</dt><dd><?= e(STATUS_ROTULOS[$i['status']] ?? $i['status']) ?></dd>
                 <dt>Pago em</dt><dd><?= $i['pago_em'] ? e(data_hora_br($i['pago_em'])) : '—' ?></dd>
