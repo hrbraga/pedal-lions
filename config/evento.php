@@ -17,15 +17,19 @@ return [
     'data_iso'     => '2027-03-14',
     'data_curta'   => '14/03/2027',
     'data_extenso' => 'Domingo, 14 de março de 2027',
-    'local_largada' => 'A confirmar',
+    'local_largada' => 'Bosque Municipal de Cornélio Procópio',
 
-    // Quando a inscrição estiver encerrada, troque para false.
+    // Inscrições: fecham sozinhas depois do prazo (vale até o fim do dia) ou quando as vagas acabam.
+    // Para mudar o prazo ou o número de vagas, altere só os dois valores abaixo.
+    'inscricoes_prazo_iso' => '2027-03-12',  // último dia (AAAA-MM-DD); '' = sem prazo
+    'inscricoes_vagas'     => 300,           // ocupam vaga as inscrições pagas e pendentes (canceladas liberam); 0 = sem limite
+    // Para fechar antes do prazo, mesmo com vagas sobrando, troque para false.
     'inscricoes_abertas' => true,
 
     // Contatos exibidos no rodapé e no FAQ.
     'contato' => [
-        'email'    => 'contato@exemplo.com.br',   // A confirmar
-        'whatsapp' => '(43) 00000-0000',          // A confirmar
+        'email'    => 'pebaaobruto@gmail.com',
+        'whatsapp' => '(43) 99675-9480',
         'instagram' => '',                        // Ex.: https://instagram.com/seuperfil
     ],
 

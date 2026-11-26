@@ -1,5 +1,7 @@
 <?php
 $pagina = 'inicio';
+require_once __DIR__ . '/includes/inscricoes.php';
+$fechamento = inscricoes_fechamento(); // null = abertas
 require __DIR__ . '/includes/header.php';
 
 $banner = imagem_opcional('banner.png'); // Se existir assets/img/banner.jpg, ele vira o fundo do topo.
@@ -15,7 +17,7 @@ $banner = imagem_opcional('banner.png'); // Se existir assets/img/banner.jpg, el
         <p class="hero__data"><?= e($ev['data_extenso']) ?> · <?= e($ev['cidade']) ?>, <?= e($ev['uf']) ?></p>
 
         <div class="hero__acoes">
-            <?php if ($ev['inscricoes_abertas']): ?>
+            <?php if (!$fechamento): ?>
                 <a class="btn btn--ouro" href="inscricao.php">Fazer minha inscrição</a>
             <?php endif; ?>
             <a class="btn btn--contorno" href="rotas.php">Ver rotas</a>
@@ -122,10 +124,10 @@ $banner = imagem_opcional('banner.png'); // Se existir assets/img/banner.jpg, el
     <div class="wrap">
         <h2>Pedale por uma boa causa</h2>
         <p>A inscrição só é confirmada após o pagamento. Garanta a sua e chame os amigos para formar uma equipe.</p>
-        <?php if ($ev['inscricoes_abertas']): ?>
+        <?php if (!$fechamento): ?>
             <a class="btn btn--azul" href="inscricao.php">Fazer minha inscrição</a>
         <?php else: ?>
-            <p><strong>As inscrições estão encerradas.</strong></p>
+            <p><strong><?= e(inscricoes_texto_fechamento($fechamento)) ?></strong></p>
         <?php endif; ?>
     </div>
 </section>

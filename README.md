@@ -36,6 +36,9 @@ entre as linhas `<<<'HTML'` e `HTML,`.
 
 ## Onde editar
 - `config/evento.php`: datas, valores, rotas, programação, FAQ, contatos.
+- Inscrições: fecham sozinhas após `inscricoes_prazo_iso` (vale até o fim do dia) ou ao atingir `inscricoes_vagas`
+  (contam as pagas e as pendentes; cancelar uma inscrição no painel libera a vaga). `inscricoes_abertas => false` fecha antes.
+  Teste da regra: `php tests/inscricoes_test.php`.
 - `assets/img/logo.png`: logo do Lions (topo, home e rodapé). Favicon: `favicon.ico` na raiz e arquivos `favicon-*.png` / `apple-touch-icon.png` em `assets/img/`.
 - `assets/img/camiseta.jpg`: arte da camiseta (abre ampliada em modal).
 - `assets/img/tabela-tamanhos.png`: tabela de tamanhos (abre em modal).

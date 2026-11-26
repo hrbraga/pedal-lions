@@ -3,8 +3,10 @@ session_start();
 require_once __DIR__ . '/includes/funcoes.php';
 require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/cupons.php';
+require_once __DIR__ . '/includes/inscricoes.php';
 
 $ev         = evento();
+$fechamento = inscricoes_fechamento(); // null = abertas; 'encerradas' ou 'esgotadas'
 $cam        = $ev['camiseta'];
 $cam_aberta = camiseta_aberta();
 $estados    = ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'];
@@ -30,8 +32,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $old[$campo] = trim(preg_replace('/\s+/u', ' ', $old[$campo]));
     }
 
-    if (!$ev['inscricoes_abertas']) {
-        $erros[] = 'As inscrições estão encerradas.';
+    if ($fechamento) {
+        $erros[] = inscricoes_texto_fechamento($fechamento);
     }
     if (!csrf_valido(post_txt('csrf'))) {
         $erros[] = 'Sua sessão expirou. Recarregue a página e envie o formulário novamente.';
@@ -114,6 +116,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $valor_inscricao = (float) $categoria['valor'];
         $cpf             = so_digitos($old['cpf']);
         $pdo             = null;
+        $trava_vagas     = false;
 
         try {
             $pdo = db();
@@ -140,7 +143,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             if (!$erros) {
-                // 2) Transação: trava o cupom, reconfere a quantidade e grava a inscrição
+                // 2) Vagas: uma inscrição por vez reconta e grava, para nunca passar do limite.
+                //    A trava vem antes da transação, para a contagem enxergar tudo o que já foi gravado.
+                $trava_vagas = (int) $pdo->query("SELECT GET_LOCK('pedal_solidario_vagas', 10)")->fetchColumn() === 1;
+                if (!$trava_vagas) {
+                    $erros[] = 'Muitas inscrições ao mesmo tempo. Tente novamente em instantes.';
+                } elseif ($fechamento = inscricoes_fechamento($pdo)) {
+                    $erros[] = inscricoes_texto_fechamento($fechamento);
+                }
+            }
+
+            if (!$erros) {
+                // 3) Transação: trava o cupom, reconfere a quantidade e grava a inscrição
                 $pdo->beginTransaction();
 
                 $cupom          = null;
@@ -220,6 +234,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 if ($codigo !== null) {
                     $pdo->commit();
+                    liberar_trava_vagas($pdo, $trava_vagas);
                     unset($_SESSION['csrf']);
                     header('Location: inscricao_recebida.php?c=' . $codigo);
                     exit;
@@ -239,6 +254,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (banco_debug()) {
                 $erros[] = 'Detalhe técnico (somente no ambiente local): ' . $e->getMessage();
             }
+        } finally {
+            liberar_trava_vagas($pdo, $trava_vagas);
         }
     }
 }
@@ -267,8 +284,8 @@ require __DIR__ . '/includes/header.php';
 <section class="secao">
     <div class="wrap">
 
-        <?php if (!$ev['inscricoes_abertas']): ?>
-            <p class="aviso aviso--erro"><strong>Inscrições encerradas.</strong> Acompanhe as novidades pelos canais oficiais do evento.</p>
+        <?php if ($fechamento): ?>
+            <p class="aviso aviso--erro"><strong><?= e(inscricoes_texto_fechamento($fechamento)) ?></strong> Acompanhe as novidades pelos canais oficiais do evento.</p>
         <?php else: ?>
 
             <?php if ($erros): ?>
@@ -485,7 +502,7 @@ require __DIR__ . '/includes/header.php';
     </div>
 </section>
 
-<?php if ($ev['inscricoes_abertas'] && $cam_aberta): ?>
+<?php if (!$fechamento && $cam_aberta): ?>
     <dialog id="modal-arte" class="modal" aria-label="Arte da camiseta">
         <button type="button" class="modal__fechar" data-fechar aria-label="Fechar">&times;</button>
         <?php if ($cam_arte): ?>
