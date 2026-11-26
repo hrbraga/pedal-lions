@@ -117,6 +117,20 @@ function admin_sair(): void
     }
 }
 
+const SENHA_MINIMA = 10;
+
+function erros_senha(string $senha, string $confirmar): array
+{
+    $erros = [];
+    if (mb_strlen($senha) < SENHA_MINIMA) {
+        $erros[] = 'A senha deve ter pelo menos ' . SENHA_MINIMA . ' caracteres.';
+    }
+    if ($senha !== $confirmar) {
+        $erros[] = 'A confirmação da senha não confere.';
+    }
+    return $erros;
+}
+
 function flash(string $tipo, string $mensagem): void
 {
     $_SESSION['flash'] = ['tipo' => $tipo, 'msg' => $mensagem];

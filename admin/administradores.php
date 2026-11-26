@@ -2,8 +2,6 @@
 require __DIR__ . '/_bootstrap.php';
 admin_exigir('admins');
 
-const SENHA_MINIMA = 10;
-
 $meu_id = (int) $_SESSION['admin_id'];
 $erros  = [];
 $novo_usuario = '';
@@ -13,18 +11,6 @@ function erros_usuario(string $usuario): array
     return preg_match('/^[A-Za-z0-9._-]{3,50}$/', $usuario)
         ? []
         : ['O usuário deve ter de 3 a 50 caracteres (letras, números, ponto, hífen ou sublinhado).'];
-}
-
-function erros_senha(string $senha, string $confirmar): array
-{
-    $erros = [];
-    if (mb_strlen($senha) < SENHA_MINIMA) {
-        $erros[] = 'A senha deve ter pelo menos ' . SENHA_MINIMA . ' caracteres.';
-    }
-    if ($senha !== $confirmar) {
-        $erros[] = 'A confirmação da senha não confere.';
-    }
-    return $erros;
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -77,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($alvo === false) {
                     $erros[] = 'Administrador não encontrado.';
                 } elseif ($id === $meu_id) {
-                    $erros[] = 'Para trocar a sua própria senha, use a seção "Minha senha".';
+                    $erros[] = 'Para trocar a sua própria senha, use a página "Minha conta".';
                 }
 
                 if (!$erros) {
@@ -106,45 +92,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 } else {
                     $pdo->prepare('DELETE FROM admins WHERE id = :id')->execute([':id' => $id]);
                     flash('ok', 'Administrador "' . $alvo . '" removido.');
-                    header('Location: administradores.php');
-                    exit;
-                }
-                break;
-
-            case 'minha_senha':
-                tentativas_garantir_tabela();
-                $atual     = (string) ($_POST['atual'] ?? '');
-                $senha     = (string) ($_POST['senha'] ?? '');
-                $confirmar = (string) ($_POST['confirmar'] ?? '');
-
-                if (login_bloqueado()) {
-                    $erros[] = 'Muitas tentativas. Aguarde 15 minutos e tente de novo.';
-                    break;
-                }
-
-                $st = $pdo->prepare('SELECT senha_hash FROM admins WHERE id = :id');
-                $st->execute([':id' => $meu_id]);
-                $hash_atual = $st->fetchColumn();
-
-                if ($hash_atual === false || !password_verify($atual, (string) $hash_atual)) {
-                    login_registrar_falha();
-                    $erros[] = 'A senha atual está incorreta.';
-                    break;
-                }
-
-                $erros = erros_senha($senha, $confirmar);
-                if ($senha === $atual) {
-                    $erros[] = 'A nova senha deve ser diferente da atual.';
-                }
-
-                if (!$erros) {
-                    $novo_hash = password_hash($senha, PASSWORD_DEFAULT);
-                    $pdo->prepare('UPDATE admins SET senha_hash = :h WHERE id = :id')
-                        ->execute([':h' => $novo_hash, ':id' => $meu_id]);
-                    login_limpar_falhas();
-                    session_regenerate_id(true);
-                    $_SESSION['admin_sig'] = admin_assinatura($novo_hash);
-                    flash('ok', 'Sua senha foi alterada.');
                     header('Location: administradores.php');
                     exit;
                 }
@@ -228,18 +175,7 @@ require __DIR__ . '/_topo.php';
     </section>
 
     <section>
-        <h2>Minha senha</h2>
-        <form method="post" class="adm-form adm-form--cartao" autocomplete="off">
-            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-            <input type="hidden" name="acao" value="minha_senha">
-            <label for="atual">Senha atual</label>
-            <input type="password" id="atual" name="atual" required autocomplete="current-password">
-            <label for="minha-senha">Nova senha <small>(mínimo de <?= SENHA_MINIMA ?> caracteres)</small></label>
-            <input type="password" id="minha-senha" name="senha" required autocomplete="new-password">
-            <label for="minha-confirmar">Confirmar nova senha</label>
-            <input type="password" id="minha-confirmar" name="confirmar" required autocomplete="new-password">
-            <button class="adm-btn" type="submit">Alterar minha senha</button>
-        </form>
+        <p>Para trocar a sua própria senha, use a página <a href="conta.php">Minha conta</a>.</p>
 
         <?php if ($outros): ?>
             <h2>Redefinir senha de outro administrador</h2>
