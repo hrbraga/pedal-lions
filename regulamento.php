@@ -34,7 +34,17 @@ require __DIR__ . '/includes/header.php';
                 <li>A inscrição só é efetivada após a confirmação do pagamento. Enquanto o pagamento não for confirmado, a inscrição fica pendente e não garante vaga nem kit.</li>
                 <li>Sobre o valor da inscrição incide taxa de administração de <?= e(taxa_rotulo()) ?>, somada ao pagamento. Eventual cupom de desconto abate apenas o valor da inscrição, sem alterar a taxa, exceto quando o cupom cobre 100% da inscrição: nesse caso a taxa também é isenta. A camiseta, quando adquirida, não tem taxa nem desconto.</li>
                 <li>O participante é responsável por informar dados corretos. Os dados informados serão usados para a organização do evento e a classificação.</li>
-                <li>As inscrições vão até 12/03/2027 ou até o preenchimento das 300 vagas, o que ocorrer primeiro.</li>
+                <?php
+                $prazo_insc = (string) ($ev['inscricoes_prazo_iso'] ?? '');
+                $vagas_insc = (int) ($ev['inscricoes_vagas'] ?? 0);
+                ?>
+                <?php if ($prazo_insc !== '' && $vagas_insc > 0): ?>
+                    <li>As inscrições vão até <?= e(data_br($prazo_insc)) ?> ou até o preenchimento das <?= $vagas_insc ?> vagas, o que ocorrer primeiro.</li>
+                <?php elseif ($prazo_insc !== ''): ?>
+                    <li>As inscrições vão até <?= e(data_br($prazo_insc)) ?>.</li>
+                <?php elseif ($vagas_insc > 0): ?>
+                    <li>As inscrições vão até o preenchimento das <?= $vagas_insc ?> vagas.</li>
+                <?php endif; ?>
             </ul>
 
             <h2>4. Cancelamento e transferência</h2>

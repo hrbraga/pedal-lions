@@ -3,6 +3,8 @@ $pagina = 'rotas';
 $titulo = 'Rotas';
 $descricao = 'Conheça os percursos Light, Hard e Rachão do 2º Pedal Solidário em Cornélio Procópio.';
 require __DIR__ . '/includes/header.php';
+require_once __DIR__ . '/includes/evento_validar.php';
+$usa_strava = false; // o script do Strava entra uma vez só, no fim, se alguma rota tiver mapa
 ?>
 
 <div class="pagina-topo">
@@ -28,7 +30,11 @@ require __DIR__ . '/includes/header.php';
                         </dl>
                     </div>
                     <?php $embed = trim((string) ($rota['mapa_embed'] ?? '')); ?>
-                    <?php if ($embed !== ''): ?>
+                    <?php if (!empty($rota['mapa']['id'])): ?>
+                        <?php $usa_strava = true; ?>
+                        <!-- Mapa montado pelo site a partir dos dados da rota salvos no painel -->
+                        <div class="mapa mapa--embed"><?= strava_html($rota['mapa']) ?></div>
+                    <?php elseif ($embed !== ''): ?>
                         <!-- Código de incorporação colado em config/evento.php (conteúdo da organização, exibido como está) -->
                         <div class="mapa mapa--embed"><?= $embed ?></div>
                     <?php elseif (!empty($rota['mapa_url'])): ?>
@@ -41,6 +47,9 @@ require __DIR__ . '/includes/header.php';
                 </div>
             </article>
         <?php endforeach; ?>
+        <?php if ($usa_strava): ?>
+            <script src="https://strava-embeds.com/embed.js"></script>
+        <?php endif; ?>
 <br>
 <br>
         <p><a class="btn btn--azul" href="inscricao.php">Fazer minha Inscrição</a></p>

@@ -30,7 +30,18 @@
   transparência real** no recorte, em 1080×1080 e 1080×1920. Para trocar a arte, substitua os arquivos mantendo os nomes.
 - Testes dos cálculos de ajuste: `node --test` na raiz do projeto.
 
+## Dados do Evento (painel)
+- Painel → **Dados do Evento**: edita data, local, contatos, inscrições (prazo, vagas, taxa), camiseta, categorias,
+  premiações, rotas, programação, perguntas frequentes e nome/link dos patrocinadores. O texto do regulamento continua em `regulamento.php`.
+- Cada "Salvar" grava uma versão (tabela `evento_versoes`, criada sozinha); o **Histórico** guarda as 50 mais recentes e permite restaurar.
+- `config/evento.php` passa a ser só o valor padrão: depois do primeiro "Salvar" no painel, valem os dados salvos.
+  Se o banco estiver fora do ar, o site usa o arquivo.
+- Mapas: cole o link da rota no Strava ou o código de incorporação; o site guarda só os dados da rota e monta o mapa.
+- Categorias com inscritos não podem ser excluídas (podem ser renomeadas e ter o valor alterado).
+- Testes: `php tests/evento_dados_test.php` e `php tests/evento_validar_test.php`.
+
 ## Mapas das rotas (Strava)
+Pelo painel (Dados do Evento → Rotas) basta colar o link da rota. O método abaixo, direto no arquivo, continua valendo enquanto nada for salvo no painel.
 No Strava: página da rota → menu "..." → **Embed** → copiar o código. Cole em `config/evento.php`, no campo `mapa_embed` da rota,
 entre as linhas `<<<'HTML'` e `HTML,`.
 
