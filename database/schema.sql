@@ -61,3 +61,12 @@ CREATE TABLE IF NOT EXISTS cupom_tentativas (
     criado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_ip (ip, criado_em)
 ) ENGINE=InnoDB;
+
+-- Dados do Evento salvos pelo painel (cada gravação é uma versão; vale a de maior id)
+CREATE TABLE IF NOT EXISTS evento_versoes (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    dados LONGTEXT NOT NULL,
+    salvo_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    salvo_por VARCHAR(50) NOT NULL,
+    restaurada_de INT UNSIGNED NULL
+) ENGINE=InnoDB;

@@ -15,12 +15,35 @@ date_default_timezone_set('America/Sao_Paulo');
     }
 })();
 
-/** Carrega (uma única vez) os dados do evento. */
-function evento(): array
+/** Valores padrão do evento, do arquivo config/evento.php (sem o que foi salvo no painel). */
+function evento_padrao(): array
 {
     static $dados = null;
     if ($dados === null) {
         $dados = require __DIR__ . '/../config/evento.php';
+    }
+    return $dados;
+}
+
+/**
+ * Dados do evento (carregados uma única vez por requisição): o arquivo de config como padrão e, por cima,
+ * o que foi salvo em Painel → Dados do Evento. Se o banco falhar, o site segue com o arquivo.
+ */
+function evento(): array
+{
+    static $dados = null;
+    if ($dados === null) {
+        $dados = evento_padrao();
+        try {
+            require_once __DIR__ . '/evento_dados.php';
+            $atual = evento_versao_atual(db());
+            if ($atual) {
+                $dados = evento_mesclar($dados, $atual['dados']);
+            }
+        } catch (Throwable $e) {
+            error_log('Pedal Solidário – dados do evento: usando config/evento.php (' . $e->getMessage() . ')');
+        }
+        $dados = array_merge($dados, evento_datas((string) ($dados['data_iso'] ?? '')));
     }
     return $dados;
 }

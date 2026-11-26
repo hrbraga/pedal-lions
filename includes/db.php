@@ -51,6 +51,16 @@ function esquema_atualizar(PDO $pdo): void
             ) ENGINE=InnoDB");
         }
 
+        if (!$pdo->query("SHOW TABLES LIKE 'evento_versoes'")->fetch()) {
+            $pdo->exec("CREATE TABLE evento_versoes (
+                id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                dados LONGTEXT NOT NULL,
+                salvo_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                salvo_por VARCHAR(50) NOT NULL,
+                restaurada_de INT UNSIGNED NULL
+            ) ENGINE=InnoDB");
+        }
+
         if (!$pdo->query("SHOW COLUMNS FROM inscricoes LIKE 'cupom_id'")->fetch()) {
             $pdo->exec("ALTER TABLE inscricoes
                 ADD COLUMN valor_desconto DECIMAL(8,2) NOT NULL DEFAULT 0,

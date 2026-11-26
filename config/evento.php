@@ -1,8 +1,10 @@
 <?php
 /**
- * DADOS DO EVENTO
- * Tudo que aparece no site (datas, valores, rotas, programação, FAQ) vem daqui.
- * Para alterar uma informação, edite apenas este arquivo.
+ * DADOS DO EVENTO (valores padrão)
+ * Tudo que aparece no site (datas, valores, rotas, programação, FAQ) parte daqui.
+ * Depois que alguém salvar em Painel → Dados do Evento, os valores salvos lá valem por cima destes;
+ * a partir daí, mude pelo painel. Este arquivo continua valendo se o banco de dados estiver fora do ar.
+ * As datas exibidas (14/03/2027 e "Domingo, 14 de março de 2027") são calculadas de data_iso.
  *
  * Itens marcados com "A confirmar" ainda precisam ser definidos pela organização.
  */
