@@ -20,6 +20,9 @@ $banner = imagem_opcional('banner.png'); // Se existir assets/img/banner.jpg, el
             <?php if (!$fechamento): ?>
                 <a class="btn btn--ouro" href="inscricao.php">Fazer minha inscrição</a>
             <?php endif; ?>
+            <?php if ($fechamento === 'em_breve'): ?>
+                <p class="hero__inicio"><?= e(inscricoes_texto_fechamento($fechamento)) ?></p>
+            <?php endif; ?>
             <a class="btn btn--contorno" href="rotas.php">Ver rotas</a>
             <a class="btn btn--contorno" href="avatar.php">Eu vou!</a>
         </div>

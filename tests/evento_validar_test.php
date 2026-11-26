@@ -35,7 +35,7 @@ function entrada_de(array $ev): array
         ],
         'inscricoes' => [
             'abertas' => '1', 'prazo_iso' => $ev['inscricoes_prazo_iso'], 'vagas' => (string) $ev['inscricoes_vagas'],
-            'taxa' => (string) $ev['taxa_administracao']['percentual'],
+            'taxa' => (string) $ev['taxa_administracao']['percentual'], 'inicio' => '2026-12-01T12:00',
         ],
         'contato' => ['email' => $ev['contato']['email'], 'whatsapp' => '43 996759480', 'instagram' => '',
                       'grupo_whatsapp' => $ev['contato']['grupo_whatsapp'] ?? ''],
@@ -91,6 +91,12 @@ confere('data inválida', isset($erros('geral.data_iso', '2027-02-30')['geral.da
 confere('UF inválida', isset($erros('geral.uf', 'XX')['geral.uf']), true);
 confere('prazo depois do evento', isset($erros('inscricoes.prazo_iso', '2027-03-15')['inscricoes.prazo_iso']), true);
 confere('prazo vazio = sem prazo', $erros('inscricoes.prazo_iso', ''), []);
+confere('início guardado', $v($valida)['dados']['inscricoes_inicio'], '2026-12-01T12:00');
+confere('início vazio = sem início programado', $erros('inscricoes.inicio', ''), []);
+confere('início inválido', isset($erros('inscricoes.inicio', '2026-13-01T12:00')['inscricoes.inicio']), true);
+confere('início sem hora', isset($erros('inscricoes.inicio', '2026-12-01')['inscricoes.inicio']), true);
+confere('início depois do último dia', isset($erros('inscricoes.inicio', '2027-03-13T08:00')['inscricoes.inicio']), true);
+confere('formulário traz o início', evento_para_formulario(array_merge($atual, ['inscricoes_inicio' => '2026-12-01T12:00']))['inscricoes']['inicio'], '2026-12-01T12:00');
 confere('prazo camiseta depois do evento', isset($erros('camiseta.prazo_iso', '2027-04-01')['camiseta.prazo_iso']), true);
 confere('vagas vazio', isset($erros('inscricoes.vagas', '')['inscricoes.vagas']), true);
 confere('vagas negativo', isset($erros('inscricoes.vagas', '-5')['inscricoes.vagas']), true);

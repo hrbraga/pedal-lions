@@ -34,5 +34,16 @@ confere('limite 0 = sem limite de vagas', $f(true, '2027-03-12', 0, 5000, '2027-
 confere('prazo vazio = sem prazo', $f(true, '', 300, 10, '2030-01-01'), null);
 confere('prazo vencido tem prioridade sobre vagas', $f(true, '2027-03-12', 300, 300, '2027-03-13'), 'encerradas');
 
+// Início programado (data e hora): antes dele "em_breve"; a partir do minuto marcado, abertas sozinhas
+confere('antes do início = em breve', $f(true, '2027-03-12', 300, 0, '2026-12-01', '2026-12-01T12:00', '2026-12-01 11:59'), 'em_breve');
+confere('no minuto do início = abertas', $f(true, '2027-03-12', 300, 0, '2026-12-01', '2026-12-01T12:00', '2026-12-01 12:00'), null);
+confere('depois do início = abertas', $f(true, '2027-03-12', 300, 0, '2026-12-05', '2026-12-01T12:00', '2026-12-05 08:00'), null);
+confere('dia anterior ao início = em breve', $f(true, '2027-03-12', 300, 0, '2026-11-30', '2026-12-01T12:00', '2026-11-30 23:59'), 'em_breve');
+confere('sem início = abertas', $f(true, '2027-03-12', 300, 0, '2026-11-26', '', '2026-11-26 10:00'), null);
+confere('interruptor desligado vence o início', $f(false, '2027-03-12', 300, 0, '2026-12-05', '2026-12-01T12:00', '2026-12-05 08:00'), 'fechadas');
+confere('texto: em breve com data e hora', inscricoes_texto_fechamento('em_breve', '2026-12-01T12:00'), 'Início das Inscrições: 01/12/2026 às 12:00');
+confere('início formatado', inscricoes_inicio_texto('2026-12-01T12:00'), '01/12/2026 às 12:00');
+confere('início vazio formatado', inscricoes_inicio_texto(''), '');
+
 echo $falhas ? "\n$falhas falha(s)\n" : "\ntodos passaram\n";
 exit($falhas ? 1 : 0);

@@ -246,6 +246,15 @@ ul { margin: 0; padding: 0; }
 }
 
 .hero__acoes { display: flex; flex-wrap: wrap; gap: .85rem; margin-bottom: .5rem; }
+/* Antes do início programado: data e hora da abertura no lugar do botão de inscrição */
+.hero__inicio {
+    flex-basis: 100%;
+    margin: 0 0 .25rem;
+    font-family: var(--fonte-titulo);
+    font-size: clamp(1.15rem, 2.6vw, 1.5rem);
+    font-weight: 600;
+    color: var(--ouro);
+}
 
 .hero__contagem {
     margin: 1.25rem 0 0;

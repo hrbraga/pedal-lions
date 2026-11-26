@@ -404,9 +404,10 @@ require __DIR__ . '/_topo.php';
         <h2>Inscrições</h2>
         <label class="adm-check">
             <input type="checkbox" name="inscricoes[abertas]" value="1"<?= valor_de($f, 'inscricoes.abertas') !== '' ? ' checked' : '' ?>>
-            Inscrições abertas <small>(desmarque para fechar antes do prazo)</small>
+            Inscrições abertas <small>(desmarque para fechar; com início programado, abrem sozinhas no dia e hora marcados)</small>
         </label>
         <div class="adm-grade">
+            <?= adm_campo($f, $erros, 'inscricoes.inicio', 'Início das inscrições (data e hora; em branco = abrem já)', 'datetime-local') ?>
             <?= adm_campo($f, $erros, 'inscricoes.prazo_iso', 'Último dia para se inscrever (em branco = sem prazo)', 'date') ?>
             <?= adm_campo($f, $erros, 'inscricoes.vagas', 'Número de vagas (0 = sem limite)', 'number', 'min="0" step="1"') ?>
             <?= adm_campo($f, $erros, 'inscricoes.taxa', 'Taxa de administração (%)', 'text', 'inputmode="decimal"') ?>

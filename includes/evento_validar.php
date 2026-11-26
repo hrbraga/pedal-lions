@@ -182,6 +182,7 @@ function evento_para_formulario(array $ev): array
             !empty($ev['inscricoes_abertas']) ? ['abertas' => '1'] : [],
             [
                 'prazo_iso' => (string) ($ev['inscricoes_prazo_iso'] ?? ''),
+                'inicio'    => (string) ($ev['inscricoes_inicio'] ?? ''),
                 'vagas'     => (string) ($ev['inscricoes_vagas'] ?? 0),
                 'taxa'      => rtrim(rtrim(number_format($taxa, 2, ',', ''), '0'), ','),
             ]
@@ -267,6 +268,15 @@ function evento_validar(array $entrada, array $atual, array $categorias_com_insc
         $erros['inscricoes.prazo_iso'] = 'O último dia de inscrição não pode ser depois do evento.';
     }
     $dados['inscricoes_prazo_iso'] = $prazo;
+    // Início programado: as inscrições abrem sozinhas nesse dia e hora (vazio = sem início programado)
+    $inicio = campo($i, 'inicio');
+    $d_inicio = DateTime::createFromFormat('Y-m-d\TH:i', $inicio);
+    if ($inicio !== '' && (!$d_inicio || $d_inicio->format('Y-m-d\TH:i') !== $inicio)) {
+        $erros['inscricoes.inicio'] = 'Informe a data e a hora do início (ou deixe em branco).';
+    } elseif ($inicio !== '' && $prazo !== '' && !isset($erros['inscricoes.prazo_iso']) && substr($inicio, 0, 10) > $prazo) {
+        $erros['inscricoes.inicio'] = 'O início não pode ser depois do último dia de inscrição.';
+    }
+    $dados['inscricoes_inicio'] = $inicio;
     $vagas = campo($i, 'vagas');
     if (!preg_match('/^\d{1,6}$/', $vagas)) {
         $erros['inscricoes.vagas'] = 'Informe o número de vagas (0 = sem limite).';

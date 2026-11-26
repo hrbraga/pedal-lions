@@ -9,16 +9,21 @@ require_once __DIR__ . '/db.php';
 /**
  * Regra pura (sem banco, testada em tests/inscricoes_test.php).
  * Devolve null se as inscrições estão abertas, ou o motivo: 'encerradas' (prazo vencido), 'fechadas' (interruptor do
- * painel desligado antes do prazo, ex.: antes de abrir) ou 'esgotadas'.
+ * painel desligado antes do prazo), 'em_breve' (antes do início programado) ou 'esgotadas'.
+ * $inicio: 'AAAA-MM-DDTHH:MM' (vazio = sem início programado); $agora: 'AAAA-MM-DD HH:MM'.
  * O prazo vale até o fim do dia; prazo vazio = sem prazo; vagas 0 = sem limite.
  */
-function inscricoes_motivo_fechamento(bool $abertas, string $prazo_iso, int $vagas, int $ocupadas, string $hoje_iso): ?string
+function inscricoes_motivo_fechamento(bool $abertas, string $prazo_iso, int $vagas, int $ocupadas, string $hoje_iso,
+    string $inicio = '', string $agora = ''): ?string
 {
     if ($prazo_iso !== '' && $hoje_iso > $prazo_iso) {
         return 'encerradas';
     }
     if (!$abertas) {
         return 'fechadas';
+    }
+    if ($inicio !== '' && $agora !== '' && $agora < str_replace('T', ' ', $inicio)) {
+        return 'em_breve';
     }
     if ($vagas > 0 && $ocupadas >= $vagas) {
         return 'esgotadas';
@@ -33,7 +38,7 @@ function vagas_ocupadas(PDO $pdo): int
 }
 
 /**
- * Situação das inscrições agora: null = abertas, ou 'encerradas' / 'fechadas' / 'esgotadas'.
+ * Situação das inscrições agora: null = abertas, ou 'encerradas' / 'fechadas' / 'em_breve' / 'esgotadas'.
  * Se o banco não responder, não fecha por vagas (o envio do formulário reconfere com o banco).
  */
 function inscricoes_fechamento(?PDO $pdo = null): ?string
@@ -53,7 +58,9 @@ function inscricoes_fechamento(?PDO $pdo = null): ?string
         (string) ($ev['inscricoes_prazo_iso'] ?? ''),
         $vagas,
         $ocupadas,
-        date('Y-m-d')
+        date('Y-m-d'),
+        (string) ($ev['inscricoes_inicio'] ?? ''),
+        date('Y-m-d H:i')
     );
 }
 
@@ -70,9 +77,23 @@ function liberar_trava_vagas(?PDO $pdo, bool &$trava): void
     $trava = false;
 }
 
-/** Frase curta para o motivo do fechamento. */
-function inscricoes_texto_fechamento(string $motivo): string
+/** '2026-12-01T12:00' → '01/12/2026 às 12:00' (vazio ou inválido → ''). */
+function inscricoes_inicio_texto(string $inicio): string
 {
+    $d = DateTime::createFromFormat('Y-m-d\TH:i', $inicio);
+    return $d && $d->format('Y-m-d\TH:i') === $inicio ? $d->format('d/m/Y') . ' às ' . $d->format('H:i') : '';
+}
+
+/** Frase curta para o motivo do fechamento ($inicio: para o 'em_breve'). */
+function inscricoes_texto_fechamento(string $motivo, string $inicio = ''): string
+{
+    if ($motivo === 'em_breve') {
+        if ($inicio === '' && function_exists('evento')) {
+            $inicio = (string) (evento()['inscricoes_inicio'] ?? '');
+        }
+        $quando = inscricoes_inicio_texto($inicio);
+        return $quando !== '' ? 'Início das Inscrições: ' . $quando : 'As inscrições ainda não estão abertas.';
+    }
     if ($motivo === 'esgotadas') {
         return 'As vagas estão esgotadas.';
     }
