@@ -1,6 +1,6 @@
 <?php
 require __DIR__ . '/_bootstrap.php';
-admin_exigir();
+admin_exigir('inscritos');
 
 $ev = evento();
 $id = (int) ($_GET['id'] ?? 0);

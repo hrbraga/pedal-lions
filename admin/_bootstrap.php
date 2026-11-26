@@ -4,6 +4,7 @@
  */
 require_once __DIR__ . '/../includes/funcoes.php';
 require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../includes/acessos.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_name('pedal_admin');
@@ -46,26 +47,60 @@ function admin_logado(): bool
     }
 
     // Confere no banco: o administrador ainda existe e a senha continua a mesma?
+    // As permissões vêm junto, a cada página: mudar o acesso de alguém vale na hora.
     try {
-        $st = db()->prepare('SELECT senha_hash FROM admins WHERE id = :id');
+        $st = db()->prepare('SELECT senha_hash, acesso_total, paginas FROM admins WHERE id = :id');
         $st->execute([':id' => (int) $_SESSION['admin_id']]);
-        $hash = $st->fetchColumn();
+        $adm = $st->fetch();
     } catch (PDOException $e) {
         return false;
     }
-    if ($hash === false || !hash_equals((string) ($_SESSION['admin_sig'] ?? ''), admin_assinatura((string) $hash))) {
+    if ($adm === false || !hash_equals((string) ($_SESSION['admin_sig'] ?? ''), admin_assinatura((string) $adm['senha_hash']))) {
         admin_sair();
         return false;
     }
 
+    admin_acesso(['total' => (bool) $adm['acesso_total'], 'paginas' => acesso_paginas_ler((string) $adm['paginas'])]);
     $_SESSION['admin_ultimo'] = time();
     return true;
 }
 
-function admin_exigir(): void
+/** Permissões do administrador desta requisição (definidas por admin_logado()). */
+function admin_acesso(?array $definir = null): array
+{
+    static $acesso = ['total' => false, 'paginas' => []];
+    if ($definir !== null) {
+        $acesso = $definir;
+    }
+    return $acesso;
+}
+
+function admin_pode(string $pagina): bool
+{
+    $a = admin_acesso();
+    return acesso_pode($a['total'], $a['paginas'], $pagina);
+}
+
+/** Primeira página que o administrador pode abrir (Minha conta, se nenhuma). */
+function admin_inicio(): string
+{
+    $a = admin_acesso();
+    return acesso_inicio($a['total'], $a['paginas']);
+}
+
+/**
+ * Exige login e, se $pagina for informada, a permissão daquela página (chave de ACESSO_PAGINAS).
+ * Sem a permissão, nada é feito: a pessoa volta para a página inicial dela com um aviso.
+ */
+function admin_exigir(?string $pagina = null): void
 {
     if (!admin_logado()) {
         header('Location: login.php');
+        exit;
+    }
+    if ($pagina !== null && !admin_pode($pagina)) {
+        flash('erro', 'Você não tem acesso a essa página.');
+        header('Location: ' . admin_inicio());
         exit;
     }
 }

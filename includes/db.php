@@ -71,6 +71,14 @@ function esquema_atualizar(PDO $pdo): void
             ) ENGINE=InnoDB");
         }
 
+        // Níveis de acesso: quem já existia continua com acesso total
+        if ($pdo->query("SHOW TABLES LIKE 'admins'")->fetch()
+            && !$pdo->query("SHOW COLUMNS FROM admins LIKE 'acesso_total'")->fetch()) {
+            $pdo->exec("ALTER TABLE admins
+                ADD COLUMN acesso_total TINYINT(1) NOT NULL DEFAULT 1,
+                ADD COLUMN paginas VARCHAR(255) NOT NULL DEFAULT ''");
+        }
+
         if (!$pdo->query("SHOW COLUMNS FROM inscricoes LIKE 'cupom_id'")->fetch()) {
             $pdo->exec("ALTER TABLE inscricoes
                 ADD COLUMN valor_desconto DECIMAL(8,2) NOT NULL DEFAULT 0,

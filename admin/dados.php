@@ -6,7 +6,7 @@
 require __DIR__ . '/_bootstrap.php';
 require_once __DIR__ . '/../includes/evento_validar.php';
 require_once __DIR__ . '/../includes/inscricoes.php';
-admin_exigir();
+admin_exigir('dados');
 
 const TRAVA_DADOS = 'pedal_evento_dados';
 

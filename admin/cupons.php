@@ -1,7 +1,7 @@
 <?php
 require __DIR__ . '/_bootstrap.php';
 require_once __DIR__ . '/../includes/cupons.php';
-admin_exigir();
+admin_exigir('cupons');
 
 /** Converte "10,50" ou "10.50" em número; devolve null se não for um valor válido. */
 function numero_decimal(string $texto): ?float

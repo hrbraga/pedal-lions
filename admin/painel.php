@@ -1,7 +1,7 @@
 <?php
 require __DIR__ . '/_bootstrap.php';
 require __DIR__ . '/_filtros.php';
-admin_exigir();
+admin_exigir('inscritos');
 
 $ev = evento();
 $por_pagina = 25;
@@ -170,7 +170,9 @@ require __DIR__ . '/_topo.php';
     <div class="adm-filtros__acoes">
         <button class="adm-btn" type="submit">Filtrar</button>
         <?php if ($filtros_qs !== ''): ?><a class="adm-btn adm-btn--claro" href="painel.php">Limpar</a><?php endif; ?>
-        <a class="adm-btn adm-btn--claro" href="exportar.php<?= $filtros_qs !== '' ? '?' . e($filtros_qs) : '' ?>">Exportar CSV</a>
+        <?php if (admin_pode('exportar')): ?>
+            <a class="adm-btn adm-btn--claro" href="exportar.php<?= $filtros_qs !== '' ? '?' . e($filtros_qs) : '' ?>">Exportar CSV</a>
+        <?php endif; ?>
     </div>
 </form>
 

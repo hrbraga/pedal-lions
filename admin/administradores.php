@@ -1,6 +1,6 @@
 <?php
 require __DIR__ . '/_bootstrap.php';
-admin_exigir();
+admin_exigir('admins');
 
 const SENHA_MINIMA = 10;
 

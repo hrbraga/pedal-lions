@@ -3,7 +3,7 @@
  * Ações sobre uma inscrição: confirmar pagamento, reabrir (voltar a pendente), cancelar ou excluir.
  */
 require __DIR__ . '/_bootstrap.php';
-admin_exigir();
+admin_exigir('inscritos');
 
 $voltar = destino_seguro((string) ($_POST['voltar'] ?? ''));
 

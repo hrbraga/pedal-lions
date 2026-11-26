@@ -20,16 +20,17 @@ $logo_admin = imagem_opcional('logo.png');
 <?php if ($mostrar_menu): ?>
 <header class="adm-topo">
     <div class="adm-largura adm-topo__barra">
-        <a class="adm-marca" href="painel.php">
+        <a class="adm-marca" href="<?= e(admin_inicio()) ?>">
             <?php if ($logo_admin): ?><img src="../<?= e($logo_admin) ?>" alt="" width="36" height="34"><?php endif; ?>
             <span>Administração</span>
         </a>
         <nav class="adm-menu" aria-label="Painel">
-            <a href="painel.php"<?= $menu_ativo === 'inscritos' ? ' aria-current="page"' : '' ?>>Inscritos</a>
-            <a href="cupons.php"<?= $menu_ativo === 'cupons' ? ' aria-current="page"' : '' ?>>Cupons</a>
-            <a href="dados.php"<?= $menu_ativo === 'dados' ? ' aria-current="page"' : '' ?>>Dados do Evento</a>
-            <a href="administradores.php"<?= $menu_ativo === 'admins' ? ' aria-current="page"' : '' ?>>Administradores</a>
-            <a href="exportar.php">Exportar CSV</a>
+            <?php foreach (ACESSO_PAGINAS as $chave => $pag): ?>
+                <?php if (admin_pode($chave)): ?>
+                    <a href="<?= e($pag['url']) ?>"<?= $menu_ativo === $chave ? ' aria-current="page"' : '' ?>><?= e($pag['rotulo']) ?></a>
+                <?php endif; ?>
+            <?php endforeach; ?>
+            <a href="conta.php"<?= $menu_ativo === 'conta' ? ' aria-current="page"' : '' ?>>Minha conta</a>
             <a href="../index.php" target="_blank" rel="noopener">Ver site</a>
             <a href="logout.php">Sair (<?= e($_SESSION['admin_usuario'] ?? '') ?>)</a>
         </nav>

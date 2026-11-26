@@ -4,7 +4,7 @@
  */
 require __DIR__ . '/_bootstrap.php';
 require __DIR__ . '/_filtros.php';
-admin_exigir();
+admin_exigir('exportar');
 
 [$onde, $params] = montar_filtros($_GET);
 
@@ -21,7 +21,7 @@ try {
 } catch (PDOException $e) {
     error_log('Pedal Solidário – erro na exportação: ' . $e->getMessage());
     flash('erro', 'Não foi possível gerar o arquivo.');
-    header('Location: painel.php');
+    header('Location: ' . admin_inicio());
     exit;
 }
 

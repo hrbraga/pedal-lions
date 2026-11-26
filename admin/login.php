@@ -2,7 +2,7 @@
 require __DIR__ . '/_bootstrap.php';
 
 if (admin_logado()) {
-    header('Location: painel.php');
+    header('Location: ' . admin_inicio());
     exit;
 }
 
@@ -26,7 +26,7 @@ try {
         } elseif (login_bloqueado()) {
             $erro = 'Muitas tentativas. Aguarde 15 minutos e tente de novo.';
         } else {
-            $st = db()->prepare('SELECT id, usuario, senha_hash FROM admins WHERE usuario = :u LIMIT 1');
+            $st = db()->prepare('SELECT id, usuario, senha_hash, acesso_total, paginas FROM admins WHERE usuario = :u LIMIT 1');
             $st->execute([':u' => $usuario]);
             $adm = $st->fetch();
 
@@ -42,7 +42,7 @@ try {
                 $_SESSION['admin_ultimo'] = time();
                 $_SESSION['admin_sig']    = admin_assinatura($adm['senha_hash']);
                 unset($_SESSION['csrf']);
-                header('Location: painel.php');
+                header('Location: ' . acesso_inicio((bool) $adm['acesso_total'], acesso_paginas_ler((string) $adm['paginas'])));
                 exit;
             }
             login_registrar_falha();
