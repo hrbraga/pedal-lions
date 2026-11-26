@@ -78,7 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 if (!$erros) {
                     try {
-                        $pdo->prepare('INSERT INTO admins (usuario, senha_hash, acesso_total, paginas) VALUES (:u, :h, :t, :p)')
+                        $pdo->prepare('INSERT INTO admins (usuario, senha_hash, acesso_total, paginas, trocar_senha) VALUES (:u, :h, :t, :p, 1)')
                             ->execute([
                                 ':u' => $novo_usuario,
                                 ':h' => password_hash($senha, PASSWORD_DEFAULT),
@@ -117,9 +117,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 if (!$erros) {
-                    $pdo->prepare('UPDATE admins SET senha_hash = :h WHERE id = :id')
+                    $pdo->prepare('UPDATE admins SET senha_hash = :h, trocar_senha = 1 WHERE id = :id')
                         ->execute([':h' => password_hash($senha, PASSWORD_DEFAULT), ':id' => $id]);
-                    flash('ok', 'Senha de "' . $alvo['usuario'] . '" redefinida. Se essa pessoa estiver logada, precisará entrar de novo.');
+                    flash('ok', 'Senha de "' . $alvo['usuario'] . '" redefinida. Essa pessoa precisa entrar de novo e criar uma senha própria no primeiro acesso.');
                     header('Location: administradores.php');
                     exit;
                 }

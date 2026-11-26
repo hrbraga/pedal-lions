@@ -43,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                     if (!$erros) {
                         $novo_hash = password_hash($senha, PASSWORD_DEFAULT);
-                        $pdo->prepare('UPDATE admins SET senha_hash = :h WHERE id = :id')
+                        $pdo->prepare('UPDATE admins SET senha_hash = :h, trocar_senha = 0 WHERE id = :id')
                             ->execute([':h' => $novo_hash, ':id' => $meu_id]);
                         login_limpar_falhas();
                         session_regenerate_id(true);
@@ -71,7 +71,9 @@ require __DIR__ . '/_topo.php';
 
 <h1>Minha conta</h1>
 
-<?php if ($sem_paginas): ?>
+<?php if ($acesso['trocar']): ?>
+    <p class="adm-aviso adm-aviso--erro" role="status">Sua senha foi definida por outra pessoa. Crie uma senha sua abaixo para usar o painel.</p>
+<?php elseif ($sem_paginas): ?>
     <p class="adm-aviso adm-aviso--erro" role="status">Você ainda não tem acesso a nenhuma página do painel. Peça a um administrador para liberar.</p>
 <?php endif; ?>
 

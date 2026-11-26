@@ -49,7 +49,7 @@ function admin_logado(): bool
     // Confere no banco: o administrador ainda existe e a senha continua a mesma?
     // As permissões vêm junto, a cada página: mudar o acesso de alguém vale na hora.
     try {
-        $st = db()->prepare('SELECT senha_hash, acesso_total, paginas FROM admins WHERE id = :id');
+        $st = db()->prepare('SELECT senha_hash, acesso_total, paginas, trocar_senha FROM admins WHERE id = :id');
         $st->execute([':id' => (int) $_SESSION['admin_id']]);
         $adm = $st->fetch();
     } catch (PDOException $e) {
@@ -60,7 +60,11 @@ function admin_logado(): bool
         return false;
     }
 
-    admin_acesso(['total' => (bool) $adm['acesso_total'], 'paginas' => acesso_paginas_ler((string) $adm['paginas'])]);
+    admin_acesso([
+        'total'   => (bool) $adm['acesso_total'],
+        'paginas' => acesso_paginas_ler((string) $adm['paginas']),
+        'trocar'  => (bool) $adm['trocar_senha'],
+    ]);
     $_SESSION['admin_ultimo'] = time();
     return true;
 }
@@ -68,24 +72,25 @@ function admin_logado(): bool
 /** Permissões do administrador desta requisição (definidas por admin_logado()). */
 function admin_acesso(?array $definir = null): array
 {
-    static $acesso = ['total' => false, 'paginas' => []];
+    static $acesso = ['total' => false, 'paginas' => [], 'trocar' => false];
     if ($definir !== null) {
         $acesso = $definir;
     }
     return $acesso;
 }
 
+/** Enquanto a senha não for trocada (definida por outra pessoa), nenhuma página fica liberada, só Minha conta. */
 function admin_pode(string $pagina): bool
 {
     $a = admin_acesso();
-    return acesso_pode($a['total'], $a['paginas'], $pagina);
+    return !$a['trocar'] && acesso_pode($a['total'], $a['paginas'], $pagina);
 }
 
-/** Primeira página que o administrador pode abrir (Minha conta, se nenhuma). */
+/** Primeira página que o administrador pode abrir (Minha conta, se nenhuma ou se precisa trocar a senha). */
 function admin_inicio(): string
 {
     $a = admin_acesso();
-    return acesso_inicio($a['total'], $a['paginas']);
+    return $a['trocar'] ? 'conta.php' : acesso_inicio($a['total'], $a['paginas']);
 }
 
 /**
@@ -96,6 +101,11 @@ function admin_exigir(?string $pagina = null): void
 {
     if (!admin_logado()) {
         header('Location: login.php');
+        exit;
+    }
+    if ($pagina !== null && admin_acesso()['trocar']) {
+        flash('erro', 'Troque a sua senha para continuar.');
+        header('Location: conta.php');
         exit;
     }
     if ($pagina !== null && !admin_pode($pagina)) {

@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS admins (
     senha_hash VARCHAR(255) NOT NULL,
     acesso_total TINYINT(1) NOT NULL DEFAULT 1,   -- 1 = todas as páginas do painel, inclusive as futuras
     paginas VARCHAR(255) NOT NULL DEFAULT '',     -- páginas liberadas quando não tem acesso total (ex.: "cupons,dados")
+    trocar_senha TINYINT(1) NOT NULL DEFAULT 0,   -- 1 = senha definida por outra pessoa: troca obrigatória no próximo acesso
     criado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 

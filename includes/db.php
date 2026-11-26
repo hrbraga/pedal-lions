@@ -78,6 +78,11 @@ function esquema_atualizar(PDO $pdo): void
                 ADD COLUMN acesso_total TINYINT(1) NOT NULL DEFAULT 1,
                 ADD COLUMN paginas VARCHAR(255) NOT NULL DEFAULT ''");
         }
+        // Senha definida por outra pessoa: o administrador troca no primeiro uso
+        if ($pdo->query("SHOW TABLES LIKE 'admins'")->fetch()
+            && !$pdo->query("SHOW COLUMNS FROM admins LIKE 'trocar_senha'")->fetch()) {
+            $pdo->exec("ALTER TABLE admins ADD COLUMN trocar_senha TINYINT(1) NOT NULL DEFAULT 0");
+        }
 
         if (!$pdo->query("SHOW COLUMNS FROM inscricoes LIKE 'cupom_id'")->fetch()) {
             $pdo->exec("ALTER TABLE inscricoes
