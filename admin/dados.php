@@ -92,7 +92,14 @@ if ($pdo && $post_grande) {
                 // Logos enviados são guardados já agora: se outro campo tiver erro, o logo não se perde
                 [$entrada, $erros_envio] = patro_receber_envios($_POST, $_FILES, patro_raiz());
                 $r = evento_validar($entrada, evento(), array_keys($inscritos));
-                if ($r['erros'] || $erros_envio) {
+                // Salvar que faz as inscrições abrirem NA HORA (ex.: início apagado sem querer) precisa de confirmação
+                $abre_agora = !$r['erros'] && !$erros_envio && post_txt('confirmar_abertura') !== '1'
+                    && inscricoes_abre_agora(inscricoes_fechamento($pdo), inscricoes_fechamento_de($r['dados'], vagas_ocupadas($pdo)));
+                if ($abre_agora) {
+                    $erros = ['inscricoes.confirmar' => 'Ao salvar, as inscrições abrem agora (o início está em branco ou já passou). '
+                        . 'Se for isso mesmo, marque a confirmação em Inscrições e salve de novo. Para abrir só no dia marcado, preencha o início.'];
+                    $form = $entrada;
+                } elseif ($r['erros'] || $erros_envio) {
                     $erros = $erros_envio + $r['erros'];
                     $form = $entrada;
                 } else {
@@ -424,6 +431,12 @@ require __DIR__ . '/_topo.php';
             <?= adm_campo($f, $erros, 'inscricoes.vagas', 'Número de vagas (0 = sem limite)', 'number', 'min="0" step="1"') ?>
             <?= adm_campo($f, $erros, 'inscricoes.taxa', 'Taxa de administração (%)', 'text', 'inputmode="decimal"') ?>
         </div>
+        <?php if (isset($erros['inscricoes.confirmar'])): ?>
+            <div class="adm-aviso adm-aviso--erro">
+                <p><?= e($erros['inscricoes.confirmar']) ?></p>
+                <label class="adm-check"><input type="checkbox" name="confirmar_abertura" value="1"> Sim, abrir as inscrições agora</label>
+            </div>
+        <?php endif; ?>
         <p class="adm-nota">Ocupando vaga agora: <?= (int) $ocupadas ?> inscrições (pagas e pendentes; canceladas liberam a vaga).</p>
     </section>
 

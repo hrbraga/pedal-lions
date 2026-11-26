@@ -99,3 +99,23 @@ function inscricoes_texto_fechamento(string $motivo, string $inicio = ''): strin
     }
     return $motivo === 'fechadas' ? 'As inscrições ainda não estão abertas.' : 'As inscrições estão encerradas.';
 }
+
+/** O Salvar vai fazer as inscrições abrirem agora (estavam fechadas e passariam a abertas)? Pede confirmação. */
+function inscricoes_abre_agora(?string $motivo_antes, ?string $motivo_depois): bool
+{
+    return $motivo_antes !== null && $motivo_depois === null;
+}
+
+/** Situação das inscrições com os dados que vão ser salvos (mesma regra de inscricoes_fechamento). */
+function inscricoes_fechamento_de(array $dados, int $ocupadas): ?string
+{
+    return inscricoes_motivo_fechamento(
+        !empty($dados['inscricoes_abertas']),
+        (string) ($dados['inscricoes_prazo_iso'] ?? ''),
+        (int) ($dados['inscricoes_vagas'] ?? 0),
+        $ocupadas,
+        date('Y-m-d'),
+        (string) ($dados['inscricoes_inicio'] ?? ''),
+        date('Y-m-d H:i')
+    );
+}

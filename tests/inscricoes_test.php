@@ -45,5 +45,12 @@ confere('texto: em breve com data e hora', inscricoes_texto_fechamento('em_breve
 confere('início formatado', inscricoes_inicio_texto('2026-12-01T12:00'), '01/12/2026 às 12:00');
 confere('início vazio formatado', inscricoes_inicio_texto(''), '');
 
+// Salvar no painel que faz as inscrições abrirem NA HORA pede confirmação (ex.: início apagado sem querer)
+confere('abertura imediata: fechada → aberta', inscricoes_abre_agora('em_breve', null), true);
+confere('abertura imediata: fechada pelo painel → aberta', inscricoes_abre_agora('fechadas', null), true);
+confere('abertura imediata: já estava aberta', inscricoes_abre_agora(null, null), false);
+confere('abertura imediata: continua fechada', inscricoes_abre_agora('em_breve', 'em_breve'), false);
+confere('abertura imediata: fechando', inscricoes_abre_agora(null, 'fechadas'), false);
+
 echo $falhas ? "\n$falhas falha(s)\n" : "\ntodos passaram\n";
 exit($falhas ? 1 : 0);
