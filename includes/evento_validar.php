@@ -166,7 +166,6 @@ function evento_para_formulario(array $ev): array
     $dinheiro = function ($v) {
         return number_format((float) $v, 2, ',', '');
     };
-    $conhecidos = mapas_conhecidos($ev);
     $patro = [];
     foreach (patrocinadores_arquivos() as $arq) {
         $info = $ev['patrocinadores_info'][$arq] ?? [];
@@ -188,7 +187,7 @@ function evento_para_formulario(array $ev): array
         ),
         'contato' => [
             'email' => $ev['contato']['email'] ?? '', 'whatsapp' => $ev['contato']['whatsapp'] ?? '',
-            'instagram' => $ev['contato']['instagram'] ?? '',
+            'instagram' => $ev['contato']['instagram'] ?? '', 'grupo_whatsapp' => $ev['contato']['grupo_whatsapp'] ?? '',
         ],
         'camiseta' => [
             'valor' => $dinheiro($ev['camiseta']['valor'] ?? 0), 'prazo_iso' => $ev['camiseta']['prazo_iso'] ?? '',
@@ -200,7 +199,7 @@ function evento_para_formulario(array $ev): array
         'premiacoes' => array_map(function ($p) {
             return ['titulo' => $p['titulo'] ?? '', 'regra' => $p['regra'] ?? '', 'premio' => $p['premio'] ?? ''];
         }, $ev['premiacoes'] ?? []),
-        'rotas' => array_map(function ($r) use ($conhecidos) {
+        'rotas' => array_map(function ($r) {
             $m = $r['mapa'] ?? strava_extrair((string) ($r['mapa_embed'] ?? '')) ?? strava_extrair((string) ($r['mapa_url'] ?? ''));
             return [
                 'nome' => $r['nome'] ?? '', 'distancia' => $r['distancia'] ?? '', 'altimetria' => $r['altimetria'] ?? '',
@@ -297,7 +296,11 @@ function evento_validar(array $entrada, array $atual, array $categorias_com_insc
     if ($insta !== '' && (!preg_match('#^https?://#i', $insta) || !filter_var($insta, FILTER_VALIDATE_URL) || mb_strlen($insta) > 200)) {
         $erros['contato.instagram'] = 'Use o link completo, começando com https://';
     }
-    $dados['contato'] = ['email' => $email, 'whatsapp' => $zap_fmt, 'instagram' => $insta];
+    $grupo = campo($c, 'grupo_whatsapp');
+    if ($grupo !== '' && (!preg_match('#^https://chat\.whatsapp\.com/[A-Za-z0-9]+([?\#].*)?$#', $grupo) || mb_strlen($grupo) > 300)) {
+        $erros['contato.grupo_whatsapp'] = 'Cole o link de convite do grupo (começa com https://chat.whatsapp.com/).';
+    }
+    $dados['contato'] = ['email' => $email, 'whatsapp' => $zap_fmt, 'instagram' => $insta, 'grupo_whatsapp' => $grupo];
 
     // Camiseta
     $cam = is_array($entrada['camiseta'] ?? null) ? $entrada['camiseta'] : [];

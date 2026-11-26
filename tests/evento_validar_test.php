@@ -37,7 +37,8 @@ function entrada_de(array $ev): array
             'abertas' => '1', 'prazo_iso' => $ev['inscricoes_prazo_iso'], 'vagas' => (string) $ev['inscricoes_vagas'],
             'taxa' => (string) $ev['taxa_administracao']['percentual'],
         ],
-        'contato' => ['email' => $ev['contato']['email'], 'whatsapp' => '43 996759480', 'instagram' => ''],
+        'contato' => ['email' => $ev['contato']['email'], 'whatsapp' => '43 996759480', 'instagram' => '',
+                      'grupo_whatsapp' => $ev['contato']['grupo_whatsapp'] ?? ''],
         'camiseta' => [
             'valor' => '130,00', 'prazo_iso' => $ev['camiseta']['prazo_iso'], 'tamanhos' => $ev['camiseta']['tamanhos'],
         ],
@@ -100,6 +101,13 @@ confere('e-mail inválido', isset($erros('contato.email', 'fulano@')['contato.em
 confere('whatsapp curto', isset($erros('contato.whatsapp', '9967')['contato.whatsapp']), true);
 confere('instagram sem https', isset($erros('contato.instagram', 'instagram.com/x')['contato.instagram']), true);
 confere('instagram com https', $erros('contato.instagram', 'https://instagram.com/pedal'), []);
+$grupo = 'https://chat.whatsapp.com/HyYQvEQrZI3EgD4SsUKgoY?s=sw&p=a&mlu=4&ilr=4';
+confere('grupo do whatsapp vem do config', $atual['contato']['grupo_whatsapp'] ?? null, $grupo);
+confere('grupo do whatsapp salvo', $r['dados']['contato']['grupo_whatsapp'] ?? null, $grupo);
+confere('grupo do whatsapp vazio = sem quadro', $erros('contato.grupo_whatsapp', ''), []);
+confere('grupo do whatsapp de outro site', isset($erros('contato.grupo_whatsapp', 'https://exemplo.com/x')['contato.grupo_whatsapp']), true);
+confere('grupo do whatsapp sem https', isset($erros('contato.grupo_whatsapp', 'chat.whatsapp.com/abc')['contato.grupo_whatsapp']), true);
+confere('formulário traz o grupo', evento_para_formulario($atual)['contato']['grupo_whatsapp'] ?? null, $grupo);
 confere('hora inválida', isset($erros('programacao.0.hora', '7h30')['programacao.0.hora']), true);
 confere('hora 24:00 inválida', isset($erros('programacao.0.hora', '24:00')['programacao.0.hora']), true);
 confere('sem categorias', isset($erros('categorias', [])['categorias']), true);

@@ -33,6 +33,8 @@ return [
         'email'    => 'pebaaobruto@gmail.com',
         'whatsapp' => '(43) 99675-9480',
         'instagram' => '',                        // Ex.: https://instagram.com/seuperfil
+        // Link de convite do grupo de WhatsApp (atalho na home). Vazio = o atalho não aparece.
+        'grupo_whatsapp' => 'https://chat.whatsapp.com/HyYQvEQrZI3EgD4SsUKgoY?s=sw&p=a&mlu=4&ilr=4',
     ],
 
     // Patrocinadores: os logos são lidos da pasta assets/img/patrocinadores/ (veja o LEIAME.txt dela).

@@ -116,7 +116,9 @@ $banner = imagem_opcional('banner.png'); // Se existir assets/img/banner.jpg, el
             <a href="rotas.php"><strong>Rotas</strong><span>Distância, altimetria e mapa de cada percurso</span></a>
             <a href="programacao.php"><strong>Programação</strong><span>Horários de kits, largadas e premiação</span></a>
             <a href="regulamento.php"><strong>Regulamento</strong><span>Regras, segurança e termo de responsabilidade</span></a>
-            <a href="https://chat.whatsapp.com/HyYQvEQrZI3EgD4SsUKgoY?s=sw&amp;p=a&amp;mlu=4&amp;ilr=4" target="_blank" rel="noopener"><strong>Grupo de Whatsapp</strong><span>Comunicação e informações sobre o evento</span></a>
+            <?php if (!empty($ev['contato']['grupo_whatsapp'])): ?>
+                <a href="<?= e($ev['contato']['grupo_whatsapp']) ?>" target="_blank" rel="noopener"><strong>Grupo de Whatsapp</strong><span>Comunicação e informações sobre o evento</span></a>
+            <?php endif; ?>
         </div>
     </div>
 </section>

@@ -341,6 +341,7 @@ require __DIR__ . '/_topo.php';
             <?= adm_campo($f, $erros, 'contato.whatsapp', 'WhatsApp (com DDD)', 'text', 'inputmode="tel"') ?>
         </div>
         <?= adm_campo($f, $erros, 'contato.instagram', 'Instagram (link completo, opcional)', 'text', 'placeholder="https://instagram.com/..."') ?>
+        <?= adm_campo($f, $erros, 'contato.grupo_whatsapp', 'Grupo de WhatsApp (link de convite; em branco, o atalho some da home)', 'text', 'placeholder="https://chat.whatsapp.com/..."') ?>
     </section>
 
     <section id="camiseta" class="adm-secao">
