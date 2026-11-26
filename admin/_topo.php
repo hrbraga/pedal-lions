@@ -26,7 +26,7 @@ $logo_admin = imagem_opcional('logo.png');
         </a>
         <nav class="adm-menu" aria-label="Painel">
             <?php foreach (ACESSO_PAGINAS as $chave => $pag): ?>
-                <?php if (admin_pode($chave)): ?>
+                <?php if (admin_pode($chave) && ($pag['menu'] ?? true)): ?>
                     <a href="<?= e($pag['url']) ?>"<?= $menu_ativo === $chave ? ' aria-current="page"' : '' ?>><?= e($pag['rotulo']) ?></a>
                 <?php endif; ?>
             <?php endforeach; ?>

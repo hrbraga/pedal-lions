@@ -11,7 +11,8 @@ const ACESSO_PAGINAS = [
     'dados'     => ['rotulo' => 'Dados do Evento', 'url' => 'dados.php'],
     'financeiro' => ['rotulo' => 'Financeiro', 'url' => 'financeiro.php'],
     'admins'    => ['rotulo' => 'Administradores', 'url' => 'administradores.php'],
-    'exportar'  => ['rotulo' => 'Exportar CSV', 'url' => 'exportar.php'],
+    // Sem item no menu: libera o botão Exportar CSV da página Inscritos (painel.php)
+    'exportar'  => ['rotulo' => 'Exportar CSV', 'url' => 'exportar.php', 'menu' => false],
 ];
 
 /** Mantém só chaves conhecidas, sem repetição, na ordem do menu. */
