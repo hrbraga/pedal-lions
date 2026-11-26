@@ -152,3 +152,51 @@ function patro_limpar_envios(PDO $pdo, string $raiz): int
     }
     return $apagados;
 }
+
+/**
+ * Recebe os logos enviados no formulário de Dados do Evento (campos patrocinadores[N][arquivo]).
+ * Cada logo guardado entra no item (patrocinadores[N][logo]); itens totalmente em branco saem da lista,
+ * para que os números dos itens batam com os da validação (itens_de também descarta os em branco).
+ * Devolve [entrada com a lista pronta, erros 'patrocinadores.N.logo' (ou 'patrocinadores' para item em branco)].
+ */
+function patro_receber_envios(array $post, array $files, string $raiz): array
+{
+    $itens = is_array($post['patrocinadores'] ?? null) ? $post['patrocinadores'] : [];
+    $f = is_array($files['patrocinadores'] ?? null) ? $files['patrocinadores'] : null;
+    $lista = [];
+    $erros = [];
+    foreach ($itens as $chave => $item) {
+        if (!is_array($item)) {
+            continue;
+        }
+        $item = [
+            'logo' => trim((string) ($item['logo'] ?? '')),
+            'nome' => (string) ($item['nome'] ?? ''),
+            'url'  => (string) ($item['url'] ?? ''),
+        ];
+        $envio = [];
+        if ($f !== null && isset($f['error'][$chave]['arquivo']) && !is_array($f['error'][$chave]['arquivo'])) {
+            $envio = patro_guardar_envio([
+                'name'     => (string) ($f['name'][$chave]['arquivo'] ?? ''),
+                'tmp_name' => (string) ($f['tmp_name'][$chave]['arquivo'] ?? ''),
+                'error'    => (int) $f['error'][$chave]['arquivo'],
+                'size'     => (int) ($f['size'][$chave]['arquivo'] ?? 0),
+            ], $raiz);
+        }
+        if (isset($envio['logo'])) {
+            $item['logo'] = $envio['logo'];
+        }
+        if ($item['logo'] === '' && trim($item['nome']) === '' && trim($item['url']) === '') {
+            if (isset($envio['erro'])) {
+                $erros['patrocinadores'] = 'Um logo foi recusado: ' . $envio['erro'] . ' Esse patrocinador estava sem nome e não foi incluído.';
+            }
+            continue;
+        }
+        if (isset($envio['erro'])) {
+            $erros['patrocinadores.' . count($lista) . '.logo'] = $envio['erro'];
+        }
+        $lista[] = $item;
+    }
+    $post['patrocinadores'] = $lista;
+    return [$post, $erros];
+}

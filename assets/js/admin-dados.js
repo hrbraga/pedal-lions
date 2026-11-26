@@ -61,6 +61,26 @@
         }
     });
 
+    /* Logo do patrocinador: mostra o arquivo escolhido antes de salvar e avisa se passar de 2 MB */
+    var LOGO_MAX = 2 * 1024 * 1024;
+    form.addEventListener('change', function (ev) {
+        var campo = ev.target;
+        if (!campo.matches || !campo.matches('[data-logo-arquivo]')) return;
+        var item = campo.closest('[data-item]');
+        var previa = item && item.querySelector('[data-logo-previa]');
+        var aviso = item && item.querySelector('[data-logo-aviso]');
+        var arquivo = campo.files && campo.files[0];
+        if (!arquivo || !previa) return;
+        if (previa.src && previa.src.indexOf('blob:') === 0) URL.revokeObjectURL(previa.src);
+        previa.src = URL.createObjectURL(arquivo);
+        previa.hidden = false;
+        if (aviso) {
+            var grande = arquivo.size > LOGO_MAX;
+            aviso.textContent = grande ? 'O logo passa de 2 MB.' : '';
+            aviso.hidden = !grande;
+        }
+    });
+
     form.addEventListener('click', function (ev) {
         var botao = ev.target.closest('[data-adicionar], [data-acao]');
         if (!botao) return;

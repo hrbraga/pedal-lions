@@ -172,10 +172,12 @@ code { background: #E8ECF6; padding: .1rem .35rem; border-radius: 4px; font-size
 .adm-item--linha { display: flex; align-items: flex-end; gap: .75rem; padding-bottom: .6rem; }
 .adm-item--linha .adm-campo { flex: 0 1 10rem; margin-top: 0; }
 .adm-lista__adicionar { margin-top: .75rem !important; }
-.adm-patro { display: flex; gap: 1rem; align-items: center; margin-top: .75rem; }
-.adm-patro img { width: 90px; height: 60px; object-fit: contain; background: #fff; border-radius: var(--raio); flex: none; }
-.adm-patro .adm-grade { flex: 1; }
-@media (max-width: 700px) { .adm-patro { flex-direction: column; align-items: stretch; } }
+/* Patrocinadores: prévia do logo (fundo xadrez para ver a transparência) + campo do arquivo */
+.adm-patro__logo { display: flex; flex-wrap: wrap; gap: .5rem 1rem; align-items: center; }
+.adm-patro__logo .adm-campo { flex: 1; min-width: 14rem; margin: 0; }
+.adm-patro__previa { width: 140px; height: 70px; object-fit: contain; flex: none; border: 1px solid var(--linha); border-radius: var(--raio);
+    background: #fff repeating-conic-gradient(#eef0f4 0% 25%, #fff 0% 50%) 0 0 / 16px 16px; }
+.adm-form .adm-patro input[type=file] { padding: .45rem; background: #fff; }
 .adm-salvar-barra { position: sticky; bottom: 0; z-index: 5; padding: .8rem 0; background: linear-gradient(transparent, var(--papel) 35%); }
 .adm-salvar-barra .adm-btn { min-width: 14rem; }
 .adm-erros-lista { margin: .5rem 0 0; padding-left: 1.2rem; }

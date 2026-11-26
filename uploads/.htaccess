@@ -1,0 +1,23 @@
+# Pasta dos arquivos enviados pelo painel (logos dos patrocinadores).
+# Só imagens podem ser abertas; nada aqui é executado como programa e a pasta não é listada.
+Options -Indexes
+
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>
+RemoveHandler .php .phtml .php3 .php4 .php5 .php7 .php8 .phar
+RemoveType .php .phtml .php3 .php4 .php5 .php7 .php8 .phar
+
+<IfModule mod_authz_core.c>
+    Require all denied
+    <FilesMatch "(?i)\.(png|jpe?g|webp)$">
+        Require all granted
+    </FilesMatch>
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Order deny,allow
+    Deny from all
+    <FilesMatch "(?i)\.(png|jpe?g|webp)$">
+        Allow from all
+    </FilesMatch>
+</IfModule>

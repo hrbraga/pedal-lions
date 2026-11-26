@@ -21,6 +21,16 @@ try {
     $erros['_'] = 'Não foi possível conectar ao banco de dados.' . (banco_debug() ? ' ' . $e->getMessage() : '');
 }
 
+/** Apaga os logos enviados que nenhuma versão usa mais; uma falha aqui nunca atrapalha a gravação. */
+function limpar_logos(PDO $pdo): void
+{
+    try {
+        patro_limpar_envios($pdo, patro_raiz());
+    } catch (Throwable $e) {
+        error_log('Pedal Solidário – limpeza dos logos: ' . $e->getMessage());
+    }
+}
+
 /** Slug da categoria => número de inscrições (de qualquer situação). */
 function inscritos_por_categoria(PDO $pdo): array
 {
@@ -31,7 +41,11 @@ function inscritos_por_categoria(PDO $pdo): array
     return $contagem;
 }
 
-if ($pdo && $_SERVER['REQUEST_METHOD'] === 'POST') {
+// Envio maior que o post_max_size do servidor: o PHP descarta todo o formulário (inclusive o csrf)
+$post_grande = $_SERVER['REQUEST_METHOD'] === 'POST' && $_POST === [] && (int) ($_SERVER['CONTENT_LENGTH'] ?? 0) > 0;
+if ($pdo && $post_grande) {
+    $erros['_'] = 'Os arquivos enviados passam do limite do servidor. Envie menos logos de cada vez.';
+} elseif ($pdo && $_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!csrf_valido(post_txt('csrf'))) {
         flash('erro', 'Sessão expirada. Abra a página de novo e refaça a alteração.');
         header('Location: dados.php');
@@ -62,6 +76,7 @@ if ($pdo && $_SERVER['REQUEST_METHOD'] === 'POST') {
                     flash('erro', 'Essa versão não tem a(s) categoria(s) ' . implode(', ', $faltando) . ', que já têm inscrições. Não foi restaurada.');
                 } else {
                     evento_salvar($pdo, $versao['dados'], $usuario, $versao['id']);
+                    limpar_logos($pdo);
                     flash('ok', 'Versão ' . $versao['id'] . ' restaurada. O site já mostra esses dados.');
                 }
             }
@@ -74,12 +89,15 @@ if ($pdo && $_SERVER['REQUEST_METHOD'] === 'POST') {
                             . '(copie antes o que você digitou, se precisar).';
                 $form = $_POST;
             } else {
-                $r = evento_validar($_POST, evento(), array_keys($inscritos));
-                if ($r['erros']) {
-                    $erros = $r['erros'];
-                    $form = $_POST;
+                // Logos enviados são guardados já agora: se outro campo tiver erro, o logo não se perde
+                [$entrada, $erros_envio] = patro_receber_envios($_POST, $_FILES, patro_raiz());
+                $r = evento_validar($entrada, evento(), array_keys($inscritos));
+                if ($r['erros'] || $erros_envio) {
+                    $erros = $erros_envio + $r['erros'];
+                    $form = $entrada;
                 } else {
                     evento_salvar($pdo, $r['dados'], $usuario);
+                    limpar_logos($pdo);
                     $msg = 'Dados do evento salvos. O site já mostra as alterações.';
                     $vagas = $r['dados']['inscricoes_vagas'];
                     $ocupadas = vagas_ocupadas($pdo);
@@ -115,7 +133,7 @@ $base      = evento_para_formulario($ev);
 // Ao voltar com erro, mostra o que a pessoa enviou (listas sem os itens em branco, como na validação)
 if ($form !== null) {
     $f = $base;
-    foreach (['geral', 'inscricoes', 'contato', 'camiseta', 'patrocinadores'] as $secao) {
+    foreach (['geral', 'inscricoes', 'contato', 'camiseta'] as $secao) {
         $f[$secao] = is_array($form[$secao] ?? null) ? $form[$secao] : [];
     }
     $f['camiseta']['tamanhos'] = array_values(array_filter(
@@ -125,7 +143,7 @@ if ($form !== null) {
     $listas = [
         'categorias' => ['slug', 'nome', 'valor', 'resumo'], 'premiacoes' => ['titulo', 'regra', 'premio'],
         'rotas' => ['nome', 'distancia', 'altimetria', 'descricao', 'mapa'], 'programacao' => ['hora', 'titulo', 'desc'],
-        'faq' => ['p', 'r'],
+        'faq' => ['p', 'r'], 'patrocinadores' => ['logo', 'nome', 'url'],
     ];
     foreach ($listas as $lista => $campos) {
         $f[$lista] = itens_de($form, $lista, $campos);
@@ -150,9 +168,7 @@ function onde_esta_o_erro(string $caminho): array
     ];
     $partes = explode('.', $caminho);
     [$ancora, $rotulo] = $secoes[$partes[0]] ?? ['geral', 'Geral'];
-    if ($partes[0] === 'patrocinadores' && count($partes) > 2) {
-        $rotulo .= ' (' . implode('.', array_slice($partes, 1, -1)) . ')';
-    } elseif (isset($partes[1]) && ctype_digit($partes[1])) {
+    if (isset($partes[1]) && ctype_digit($partes[1])) {
         $rotulo .= ', item ' . ((int) $partes[1] + 1);
     }
     return [$ancora, $rotulo];
@@ -273,6 +289,31 @@ function item_faq(array $f, array $erros, string $i): string
         . '</fieldset>';
 }
 
+/**
+ * Patrocinador: prévia do logo, arquivo para enviar/trocar, nome e link.
+ * O caminho do logo já guardado vai num campo escondido; um arquivo novo escolhido o substitui ao salvar.
+ */
+function item_patrocinador(array $f, array $erros, string $i): string
+{
+    $logo = valor_de($f, "patrocinadores.$i.logo");
+    $erro = $erros["patrocinadores.$i.logo"] ?? '';
+    $previa = $logo !== '' ? ' src="../' . e(patro_url($logo)) . '"' : '';
+    return '<fieldset class="adm-item adm-patro" data-item>' . botoes_item()
+        . '<div class="adm-patro__logo">'
+        . '<img class="adm-patro__previa" data-logo-previa alt=""' . $previa . ($logo === '' ? ' hidden' : '') . '>'
+        . '<input type="hidden" name="' . e(nome_de("patrocinadores.$i.logo")) . '" value="' . e($logo) . '">'
+        . '<label class="adm-campo' . ($erro !== '' ? ' adm-campo--erro' : '') . '"><span>' . ($logo === '' ? 'Enviar logo' : 'Trocar logo') . '</span>'
+        . '<input type="file" name="' . e(nome_de("patrocinadores.$i.arquivo")) . '" accept="image/png,image/jpeg,image/webp" data-logo-arquivo'
+        . ($erro !== '' ? ' aria-invalid="true"' : '') . '>'
+        . '<small class="adm-campo__erro" data-logo-aviso' . ($erro === '' ? ' hidden' : '') . '>' . e($erro) . '</small>'
+        . '</label></div>'
+        . '<div class="adm-grade">'
+        . adm_campo($f, $erros, "patrocinadores.$i.nome", 'Nome', 'text', 'maxlength="100"')
+        . adm_campo($f, $erros, "patrocinadores.$i.url", 'Link (opcional)', 'text', 'placeholder="https://"')
+        . '</div>'
+        . '</fieldset>';
+}
+
 function item_tamanho(array $f, array $erros, string $i): string
 {
     return '<div class="adm-item adm-item--linha" data-item>'
@@ -338,7 +379,7 @@ require __DIR__ . '/_topo.php';
 <?php endif; ?>
 
 <?php if ($pdo): ?>
-<form method="post" class="adm-form adm-dados-form" data-dados novalidate>
+<form method="post" class="adm-form adm-dados-form" enctype="multipart/form-data" data-dados novalidate>
     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
     <input type="hidden" name="acao" value="salvar">
     <input type="hidden" name="versao" value="<?= $form !== null ? e(post_txt('versao')) : (int) ($atual['id'] ?? 0) ?>">
@@ -432,30 +473,12 @@ require __DIR__ . '/_topo.php';
 
     <section id="patrocinadores" class="adm-secao">
         <h2>Patrocinadores</h2>
-        <p class="adm-nota">Os logos vêm da pasta <code>assets/img/patrocinadores/</code>. Aqui você ajusta o nome e o link de cada um.</p>
-        <?php if (!$f['patrocinadores'] && !$base['patrocinadores']): ?>
-            <p class="adm-nota">Nenhum logo na pasta.</p>
-        <?php endif; ?>
-        <?php foreach (array_keys($base['patrocinadores']) as $arq): ?>
-            <?php
-            $nome_erro = $erros["patrocinadores.$arq.nome"] ?? '';
-            $url_erro  = $erros["patrocinadores.$arq.url"] ?? '';
-            $info      = is_array($f['patrocinadores'][$arq] ?? null) ? $f['patrocinadores'][$arq] : [];
-            ?>
-            <div class="adm-item adm-patro">
-                <img src="../assets/img/patrocinadores/<?= e(rawurlencode($arq)) ?>" alt="" loading="lazy">
-                <div class="adm-grade">
-                    <label class="adm-campo<?= $nome_erro ? ' adm-campo--erro' : '' ?>"><span>Nome <small>(<?= e($arq) ?>)</small></span>
-                        <input type="text" name="patrocinadores[<?= e($arq) ?>][nome]" value="<?= e((string) ($info['nome'] ?? '')) ?>" maxlength="100">
-                        <?php if ($nome_erro): ?><small class="adm-campo__erro"><?= e($nome_erro) ?></small><?php endif; ?>
-                    </label>
-                    <label class="adm-campo<?= $url_erro ? ' adm-campo--erro' : '' ?>"><span>Link (opcional)</span>
-                        <input type="text" name="patrocinadores[<?= e($arq) ?>][url]" value="<?= e((string) ($info['url'] ?? '')) ?>" placeholder="https://">
-                        <?php if ($url_erro): ?><small class="adm-campo__erro"><?= e($url_erro) ?></small><?php endif; ?>
-                    </label>
-                </div>
-            </div>
-        <?php endforeach; ?>
+        <p class="adm-nota">Envie PNG, JPG ou WEBP de até 2 MB, de preferência com fundo transparente e uns 400 px de largura.
+            A ordem aqui é a ordem do carrossel da página inicial.</p>
+        <?= erro_lista($erros, 'patrocinadores') ?>
+        <?= lista('patrocinadores', 'patrocinadores', $f['patrocinadores'], function ($i) use ($f, $erros, $vazio) {
+            return item_patrocinador($i === '__i__' ? $vazio : $f, $erros, $i);
+        }, 'Adicionar patrocinador') ?>
     </section>
 
     <div class="adm-salvar-barra">
