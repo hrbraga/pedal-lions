@@ -83,11 +83,11 @@ $rotulos = ['pendente' => 'Aguardando pagamento', 'pago' => 'Pagamento confirmad
                 <p><a class="btn btn--ouro btn--pequeno" href="avatar.php">Montar minha foto “Eu vou!”</a></p>
             </div>
 
-            <p><a class="btn btn--azul" href="index.php">Voltar ao início</a></p>
+            <p><a class="btn btn--azul" href="./">Voltar ao início</a></p>
 
         <?php elseif ($falha): ?>
             <p class="aviso aviso--erro">Não foi possível consultar a inscrição agora. Tente novamente em instantes.</p>
-            <p><a class="btn btn--azul" href="index.php">Voltar ao início</a></p>
+            <p><a class="btn btn--azul" href="./">Voltar ao início</a></p>
         <?php else: ?>
             <p class="aviso aviso--erro">Não encontramos uma inscrição com esse código.</p>
             <p><a class="btn btn--azul" href="inscricao.php">Ir para a inscrição</a></p>

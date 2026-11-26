@@ -9,7 +9,7 @@ $descricao_pagina = $descricao ?? ($ev['nome'] . ' do ' . $ev['organizador'] . '
 $logo = imagem_opcional('logo.png');
 
 $menu = [
-    'inicio'      => ['index.php',       'Início'],
+    'inicio'      => ['./',              'Início'],
     'rotas'       => ['rotas.php',       'Rotas'],
     'programacao' => ['programacao.php', 'Programação'],
     'regulamento' => ['regulamento.php', 'Regulamento'],
@@ -39,7 +39,7 @@ $menu = [
 
 <header class="topo">
     <div class="wrap topo__barra">
-        <a class="marca" href="index.php" aria-label="<?= e($ev['nome']) ?> – página inicial">
+        <a class="marca" href="./" aria-label="<?= e($ev['nome']) ?> – página inicial">
             <?php if ($logo): ?>
                 <img src="<?= e($logo) ?>" alt="Lions Clube" class="marca__logo" width="56" height="53">
             <?php endif; ?>

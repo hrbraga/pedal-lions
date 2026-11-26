@@ -5,3 +5,11 @@ RedirectMatch 404 (?i)/(README\.md|\.gitignore|\.gitattributes|\.htaccess)$
 
 # Não lista o conteúdo das pastas
 Options -Indexes
+
+# Endereço limpo: quem abre ".../index.php" vai para ".../" (301). Olha o pedido original (THE_REQUEST),
+# então a página inicial servida internamente pela pasta não entra em laço.
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{THE_REQUEST} ^[A-Z]+\s(/(?:[^?\s]*/)?)index\.php(\?[^\s]*)?\s [NC]
+    RewriteRule (^|/)index\.php$ %1 [R=301,L,NE]
+</IfModule>

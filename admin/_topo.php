@@ -31,7 +31,7 @@ $logo_admin = imagem_opcional('logo.png');
                 <?php endif; ?>
             <?php endforeach; ?>
             <a href="conta.php"<?= $menu_ativo === 'conta' ? ' aria-current="page"' : '' ?>>Minha conta</a>
-            <a href="../index.php" target="_blank" rel="noopener">Ver site</a>
+            <a href="../" target="_blank" rel="noopener">Ver site</a>
             <a href="logout.php">Sair (<?= e($_SESSION['admin_usuario'] ?? '') ?>)</a>
         </nav>
     </div>
