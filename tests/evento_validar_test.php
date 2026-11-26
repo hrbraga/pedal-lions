@@ -40,7 +40,11 @@ function entrada_de(array $ev): array
         'contato' => ['email' => $ev['contato']['email'], 'whatsapp' => '43 996759480', 'instagram' => '',
                       'grupo_whatsapp' => $ev['contato']['grupo_whatsapp'] ?? ''],
         'camiseta' => [
-            'valor' => '130,00', 'prazo_iso' => $ev['camiseta']['prazo_iso'], 'tamanhos' => $ev['camiseta']['tamanhos'],
+            'modelos' => [
+                ['slug' => 'curta', 'nome' => 'Manga curta', 'valor' => '130,00'],
+                ['slug' => 'longa', 'nome' => 'Manga longa', 'valor' => '150,00'],
+            ],
+            'prazo_iso' => $ev['camiseta']['prazo_iso'], 'tamanhos' => $ev['camiseta']['tamanhos'],
         ],
         'categorias' => array_map(function ($c) {
             return ['slug' => $c['slug'], 'nome' => $c['nome'], 'valor' => number_format($c['valor'], 2, ',', ''), 'resumo' => $c['resumo']];
@@ -75,7 +79,19 @@ $erros = function (string $caminho, $valor, array $com_inscricao = []) use ($val
 $r = $v($valida);
 confere('entrada válida não tem erros', $r['erros'], []);
 confere('valor com vírgula vira número', $r['dados']['categorias'][0]['valor'], 70.0);
-confere('camiseta com vírgula', $r['dados']['camiseta']['valor'], 130.0);
+confere('camiseta: modelos com valor em vírgula', $r['dados']['camiseta']['modelos'], [
+    ['slug' => 'curta', 'nome' => 'Manga curta', 'valor' => 130.0],
+    ['slug' => 'longa', 'nome' => 'Manga longa', 'valor' => 150.0],
+]);
+confere('camiseta: não grava mais o valor único', array_key_exists('valor', $r['dados']['camiseta']), false);
+confere('camiseta: modelo sem nome', isset($erros('camiseta.modelos.0.nome', '')['camiseta.modelos.0.nome']), true);
+confere('camiseta: valor inválido', isset($erros('camiseta.modelos.1.valor', 'abc')['camiseta.modelos.1.valor']), true);
+confere('camiseta: sem modelos', $erros('camiseta.modelos', [])['camiseta.modelos'] ?? null, 'Informe pelo menos um modelo de camiseta.');
+$regata = $valida;
+$regata['camiseta']['modelos'][] = ['slug' => '', 'nome' => 'Regata', 'valor' => '99,90'];
+confere('camiseta: modelo novo ganha identificador do nome', $v($regata)['dados']['camiseta']['modelos'][2]['slug'] ?? null, 'regata');
+confere('camiseta: formato antigo vira um modelo', camiseta_modelos(['valor' => 130]), [['slug' => 'camiseta', 'nome' => 'Camiseta', 'valor' => 130.0]]);
+confere('camiseta: modelos guardados são lidos', array_column(camiseta_modelos(['modelos' => [['slug' => 'longa', 'nome' => 'Manga longa', 'valor' => 150]]]), 'valor', 'slug'), ['longa' => 150.0]);
 confere('whatsapp formatado', $r['dados']['contato']['whatsapp'], '(43) 99675-9480');
 confere('vagas vira inteiro', $r['dados']['inscricoes_vagas'], 300);
 confere('taxa vira número', $r['dados']['taxa_administracao'], ['percentual' => 10.0]);
@@ -219,6 +235,7 @@ confere('ida e volta mantém o token do mapa', $ida_volta['dados']['rotas'][1]['
 confere('formulário traz os logos da pasta antiga, com nome', array_column($form['patrocinadores'], 'logo'),
     ['assets/img/patrocinadores/Galdini.png', 'assets/img/patrocinadores/pebaaobruto.png', 'assets/img/patrocinadores/royal.png', 'assets/img/patrocinadores/vital.jpg']);
 confere('formulário: nome de cada patrocinador preenchido', count(array_filter(array_column($form['patrocinadores'], 'nome'))), 4);
+confere('ida e volta mantém os modelos de camiseta', $ida_volta['dados']['camiseta']['modelos'], camiseta_modelos($atual['camiseta']));
 confere('ida e volta mantém os patrocinadores', array_column($ida_volta['dados']['patrocinadores'], 'logo'), array_column($form['patrocinadores'], 'logo'));
 
 // Logo cujo arquivo sumiu do servidor (ex.: mudança de hospedagem): o patrocinador continua no formulário,

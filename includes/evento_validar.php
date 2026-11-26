@@ -192,7 +192,10 @@ function evento_para_formulario(array $ev): array
             'instagram' => $ev['contato']['instagram'] ?? '', 'grupo_whatsapp' => $ev['contato']['grupo_whatsapp'] ?? '',
         ],
         'camiseta' => [
-            'valor' => $dinheiro($ev['camiseta']['valor'] ?? 0), 'prazo_iso' => $ev['camiseta']['prazo_iso'] ?? '',
+            'modelos' => array_map(function ($m) use ($dinheiro) {
+                return ['slug' => $m['slug'], 'nome' => $m['nome'], 'valor' => $dinheiro($m['valor'])];
+            }, camiseta_modelos($ev['camiseta'] ?? [])),
+            'prazo_iso' => $ev['camiseta']['prazo_iso'] ?? '',
             'tamanhos' => array_values($ev['camiseta']['tamanhos'] ?? []),
         ],
         'categorias' => array_map(function ($c) use ($dinheiro) {
@@ -315,9 +318,24 @@ function evento_validar(array $entrada, array $atual, array $categorias_com_insc
 
     // Camiseta
     $cam = is_array($entrada['camiseta'] ?? null) ? $entrada['camiseta'] : [];
-    $valor_cam = dinheiro(campo($cam, 'valor'));
-    if ($valor_cam === null) {
-        $erros['camiseta.valor'] = 'Informe um valor válido (ex.: 130,00).';
+    // Modelos (ex.: manga curta / manga longa), cada um com o seu preço; o identificador de um modelo existente não muda
+    $modelos = [];
+    $slugs_usados = array_column(camiseta_modelos($atual['camiseta'] ?? []), 'slug');
+    $slugs_lista = [];
+    foreach (itens_de($cam, 'modelos', ['slug', 'nome', 'valor']) as $n => $m) {
+        $p = "camiseta.modelos.$n";
+        $nome_m = $texto($m, 'nome', "$p.nome", 40, true, 'o nome do modelo');
+        $valor_m = dinheiro($m['valor']);
+        if ($valor_m === null) {
+            $erros["$p.valor"] = 'Informe um valor válido (ex.: 130,00).';
+        }
+        $slug_m = preg_match('/^[a-z0-9-]{1,20}$/', $m['slug']) && !in_array($m['slug'], $slugs_lista, true)
+            ? $m['slug'] : substr(slug_de($nome_m !== '' ? $nome_m : 'modelo', array_merge($slugs_usados, $slugs_lista)), 0, 20);
+        $slugs_lista[] = $slug_m;
+        $modelos[] = ['slug' => $slug_m, 'nome' => $nome_m, 'valor' => (float) $valor_m];
+    }
+    if (!$modelos) {
+        $erros['camiseta.modelos'] = 'Informe pelo menos um modelo de camiseta.';
     }
     $prazo_cam = campo($cam, 'prazo_iso');
     if (!data_valida($prazo_cam)) {
@@ -341,7 +359,7 @@ function evento_validar(array $entrada, array $atual, array $categorias_com_insc
     if (!$tamanhos) {
         $erros['camiseta.tamanhos'] = 'Informe pelo menos um tamanho.';
     }
-    $dados['camiseta'] = ['valor' => (float) $valor_cam, 'prazo_iso' => $prazo_cam, 'tamanhos' => $tamanhos];
+    $dados['camiseta'] = ['modelos' => $modelos, 'prazo_iso' => $prazo_cam, 'tamanhos' => $tamanhos];
 
     // Categorias: o identificador (slug) de uma existente nunca muda; uma nova ganha um gerado do nome
     $existentes = array_column($atual['categorias'] ?? [], 'slug');

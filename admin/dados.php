@@ -136,6 +136,7 @@ if ($form !== null) {
     foreach (['geral', 'inscricoes', 'contato', 'camiseta'] as $secao) {
         $f[$secao] = is_array($form[$secao] ?? null) ? $form[$secao] : [];
     }
+    $f['camiseta']['modelos'] = itens_de(is_array($form['camiseta'] ?? null) ? $form['camiseta'] : [], 'modelos', ['slug', 'nome', 'valor']);
     $f['camiseta']['tamanhos'] = array_values(array_filter(
         is_array($form['camiseta']['tamanhos'] ?? null) ? $form['camiseta']['tamanhos'] : [],
         function ($t) { return is_string($t) && trim($t) !== ''; }
@@ -318,6 +319,17 @@ function item_patrocinador(array $f, array $erros, string $i): string
         . '</fieldset>';
 }
 
+/** Modelo de camiseta: nome e preço (o identificador escondido não muda depois de criado). */
+function item_modelo(array $f, array $erros, string $i): string
+{
+    return '<fieldset class="adm-item" data-item>' . botoes_item()
+        . '<input type="hidden" name="' . e(nome_de("camiseta.modelos.$i.slug")) . '" value="' . e(valor_de($f, "camiseta.modelos.$i.slug")) . '">'
+        . '<div class="adm-grade">'
+        . adm_campo($f, $erros, "camiseta.modelos.$i.nome", 'Modelo', 'text', 'maxlength="40" placeholder="Manga longa"')
+        . adm_campo($f, $erros, "camiseta.modelos.$i.valor", 'Valor (R$)', 'text', 'inputmode="decimal" placeholder="130,00"')
+        . '</div></fieldset>';
+}
+
 function item_tamanho(array $f, array $erros, string $i): string
 {
     return '<div class="adm-item adm-item--linha" data-item>'
@@ -428,9 +440,14 @@ require __DIR__ . '/_topo.php';
     <section id="camiseta" class="adm-secao">
         <h2>Camiseta</h2>
         <div class="adm-grade">
-            <?= adm_campo($f, $erros, 'camiseta.valor', 'Valor (R$)', 'text', 'inputmode="decimal"') ?>
             <?= adm_campo($f, $erros, 'camiseta.prazo_iso', 'Último dia para comprar', 'date') ?>
         </div>
+        <h3>Modelos e preços</h3>
+        <p class="adm-nota">O atleta escolhe o modelo e o tamanho na inscrição. A camiseta não tem taxa nem desconto de cupom.</p>
+        <?= erro_lista($erros, 'camiseta.modelos') ?>
+        <?= lista('modelos', 'camiseta[modelos]', $f['camiseta']['modelos'] ?? [], function ($i) use ($f, $erros) {
+            return item_modelo($i === '__i__' ? [] : $f, $erros, $i);
+        }, 'Adicionar modelo') ?>
         <h3>Tamanhos</h3>
         <?= erro_lista($erros, 'camiseta.tamanhos') ?>
         <?= lista('tamanhos', 'camiseta[tamanhos]', $f['camiseta']['tamanhos'], function ($i) use ($f, $erros) {

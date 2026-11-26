@@ -84,6 +84,35 @@ function data_br(string $iso): string
 }
 
 /** A compra da camiseta está aberta? (vale até o fim do dia do prazo) */
+/**
+ * Modelos da camiseta (ex.: manga curta e manga longa), cada um com o seu preço:
+ * lista de ['slug' => ..., 'nome' => ..., 'valor' => float]. Dados antigos (só 'valor') viram um modelo "Camiseta".
+ */
+function camiseta_modelos(array $cam): array
+{
+    if (isset($cam['modelos']) && is_array($cam['modelos'])) {
+        $modelos = [];
+        foreach ($cam['modelos'] as $m) {
+            if (is_array($m) && (string) ($m['slug'] ?? '') !== '') {
+                $modelos[] = ['slug' => (string) $m['slug'], 'nome' => (string) ($m['nome'] ?? ''), 'valor' => (float) ($m['valor'] ?? 0)];
+            }
+        }
+        return $modelos;
+    }
+    return [['slug' => 'camiseta', 'nome' => 'Camiseta', 'valor' => (float) ($cam['valor'] ?? 0)]];
+}
+
+/** Um modelo da camiseta do evento atual pelo identificador, ou null. */
+function camiseta_modelo(string $slug): ?array
+{
+    foreach (camiseta_modelos(evento()['camiseta'] ?? []) as $m) {
+        if ($m['slug'] === $slug) {
+            return $m;
+        }
+    }
+    return null;
+}
+
 function camiseta_aberta(): bool
 {
     $prazo = evento()['camiseta']['prazo_iso'] ?? '';

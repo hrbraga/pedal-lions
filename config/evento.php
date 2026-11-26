@@ -54,7 +54,12 @@ return [
 
     // Camiseta oficial (compra opcional, à parte da inscrição)
     'camiseta' => [
-        'valor'      => 130.00,
+        // Modelos e preços (escolhidos na inscrição). Depois do primeiro Salvar no painel, valem os de Dados do Evento.
+        // ATENÇÃO: o preço da manga longa abaixo é PROVISÓRIO até a organização confirmar.
+        'modelos'    => [
+            ['slug' => 'curta', 'nome' => 'Manga curta', 'valor' => 130.00],
+            ['slug' => 'longa', 'nome' => 'Manga longa', 'valor' => 130.00],
+        ],
         // Último dia para comprar (inclusive). Para alterar, mude apenas esta data (AAAA-MM-DD).
         'prazo_iso'  => '2027-02-20',
         'tamanhos'   => ['PP', 'P', 'M', 'G', 'GG', 'XG', 'XXG'],
@@ -170,7 +175,7 @@ HTML,
         ],
         [
             'p' => 'Quanto custa a inscrição?',
-            'r' => 'R$ 60,00 para Hard e Light e R$ 70,00 para o Rachão. Sobre o valor da inscrição incide uma taxa de administração de ' . $taxa_pct . '%, somada no pagamento. A camiseta (opcional, R$ 130,00) não tem taxa nem desconto. O resumo da página de inscrição mostra o total exato.',
+            'r' => 'R$ 60,00 para Hard e Light e R$ 70,00 para o Rachão. Sobre o valor da inscrição incide uma taxa de administração de ' . $taxa_pct . '%, somada no pagamento. A camiseta é opcional, em manga curta ou manga longa (o preço de cada modelo aparece na página de inscrição), e não tem taxa nem desconto. O resumo da página de inscrição mostra o total exato.',
         ],
         [
             'p' => 'Minha inscrição já está confirmada depois de preencher o formulário?',
