@@ -90,6 +90,17 @@ confere('camiseta: sem modelos', $erros('camiseta.modelos', [])['camiseta.modelo
 $regata = $valida;
 $regata['camiseta']['modelos'][] = ['slug' => '', 'nome' => 'Regata', 'valor' => '99,90'];
 confere('camiseta: modelo novo ganha identificador do nome', $v($regata)['dados']['camiseta']['modelos'][2]['slug'] ?? null, 'regata');
+$longos = $valida;
+$longos['camiseta']['modelos'] = [
+    ['slug' => '', 'nome' => 'Manga longa feminina premium', 'valor' => '170,00'],
+    ['slug' => '', 'nome' => 'Manga longa feminina básica', 'valor' => '140,00'],
+];
+$slugs_longos = array_column($v($longos)['dados']['camiseta']['modelos'], 'slug');
+confere('camiseta: nomes longos parecidos ganham identificadores diferentes', count(array_unique($slugs_longos)), 2);
+confere('camiseta: identificador cabe na coluna (20)', max(array_map('strlen', $slugs_longos)) <= 20, true);
+// Versão salva antes dos modelos (só valor) mesclada com o padrão: valem os modelos do padrão
+$mesclado = evento_mesclar(evento_padrao(), ['camiseta' => ['valor' => 130, 'prazo_iso' => '2027-02-20', 'tamanhos' => ['P', 'M']]]);
+confere('camiseta: versão antiga usa os modelos do padrão', array_column(camiseta_modelos($mesclado['camiseta']), 'valor', 'slug'), ['curta' => 130.0, 'longa' => 150.0]);
 confere('camiseta: formato antigo vira um modelo', camiseta_modelos(['valor' => 130]), [['slug' => 'camiseta', 'nome' => 'Camiseta', 'valor' => 130.0]]);
 confere('camiseta: modelos guardados são lidos', array_column(camiseta_modelos(['modelos' => [['slug' => 'longa', 'nome' => 'Manga longa', 'valor' => 150]]]), 'valor', 'slug'), ['longa' => 150.0]);
 confere('whatsapp formatado', $r['dados']['contato']['whatsapp'], '(43) 99675-9480');

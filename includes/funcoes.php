@@ -83,7 +83,6 @@ function data_br(string $iso): string
     return $d ? $d->format('d/m/Y') : $iso;
 }
 
-/** A compra da camiseta está aberta? (vale até o fim do dia do prazo) */
 /**
  * Modelos da camiseta (ex.: manga curta e manga longa), cada um com o seu preço:
  * lista de ['slug' => ..., 'nome' => ..., 'valor' => float]. Dados antigos (só 'valor') viram um modelo "Camiseta".
@@ -123,6 +122,7 @@ function camiseta_modelo_nome(?string $slug): string
     return $m ? $m['nome'] : $slug;
 }
 
+/** A compra da camiseta está aberta? (vale até o fim do dia do prazo) */
 function camiseta_aberta(): bool
 {
     $prazo = evento()['camiseta']['prazo_iso'] ?? '';

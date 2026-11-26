@@ -329,8 +329,17 @@ function evento_validar(array $entrada, array $atual, array $categorias_com_insc
         if ($valor_m === null) {
             $erros["$p.valor"] = 'Informe um valor válido (ex.: 130,00).';
         }
-        $slug_m = preg_match('/^[a-z0-9-]{1,20}$/', $m['slug']) && !in_array($m['slug'], $slugs_lista, true)
-            ? $m['slug'] : substr(slug_de($nome_m !== '' ? $nome_m : 'modelo', array_merge($slugs_usados, $slugs_lista)), 0, 20);
+        $slug_m = $m['slug'];
+        if (!preg_match('/^[a-z0-9-]{1,20}$/', $slug_m) || in_array($slug_m, $slugs_lista, true)) {
+            // Identificador novo: corta em 20 (tamanho da coluna) ANTES de evitar repetição; senão dois nomes longos
+            // parecidos virariam o mesmo identificador e um modelo seria cobrado pelo preço do outro
+            $ocupados = array_merge($slugs_usados, $slugs_lista);
+            $base = rtrim(substr(slug_de($nome_m !== '' ? $nome_m : 'modelo', []), 0, 20), '-');
+            $slug_m = $base;
+            for ($k = 2; in_array($slug_m, $ocupados, true); $k++) {
+                $slug_m = rtrim(substr($base, 0, 20 - strlen("-$k")), '-') . "-$k";
+            }
+        }
         $slugs_lista[] = $slug_m;
         $modelos[] = ['slug' => $slug_m, 'nome' => $nome_m, 'valor' => (float) $valor_m];
     }
