@@ -21,7 +21,12 @@ $f = 'inscricoes_motivo_fechamento';
 confere('aberta antes do prazo e com vagas', $f(true, '2027-03-12', 300, 10, '2027-03-01'), null);
 confere('aberta no último dia do prazo', $f(true, '2027-03-12', 300, 10, '2027-03-12'), null);
 confere('encerrada no dia seguinte ao prazo', $f(true, '2027-03-12', 300, 10, '2027-03-13'), 'encerradas');
-confere('encerrada pelo interruptor manual', $f(false, '2027-03-12', 300, 10, '2027-03-01'), 'encerradas');
+// Fechada pelo interruptor do painel (ex.: antes de abrir): "fechadas", com texto neutro; prazo vencido continua "encerradas"
+confere('fechada pelo interruptor manual', $f(false, '2027-03-12', 300, 10, '2027-03-01'), 'fechadas');
+confere('interruptor fechado depois do prazo = encerradas', $f(false, '2027-03-12', 300, 10, '2027-03-13'), 'encerradas');
+confere('texto: fechadas pelo painel', inscricoes_texto_fechamento('fechadas'), 'As inscrições ainda não estão abertas.');
+confere('texto: prazo encerrado', inscricoes_texto_fechamento('encerradas'), 'As inscrições estão encerradas.');
+confere('texto: vagas esgotadas', inscricoes_texto_fechamento('esgotadas'), 'As vagas estão esgotadas.');
 confere('aberta com uma vaga sobrando', $f(true, '2027-03-12', 300, 299, '2027-03-01'), null);
 confere('esgotada ao atingir o limite', $f(true, '2027-03-12', 300, 300, '2027-03-01'), 'esgotadas');
 confere('esgotada acima do limite', $f(true, '2027-03-12', 300, 305, '2027-03-01'), 'esgotadas');

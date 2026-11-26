@@ -25,8 +25,9 @@ return [
     // Para mudar o prazo ou o número de vagas, altere só os dois valores abaixo.
     'inscricoes_prazo_iso' => '2027-03-12',  // último dia (AAAA-MM-DD); '' = sem prazo
     'inscricoes_vagas'     => 300,           // ocupam vaga as inscrições pagas e pendentes (canceladas liberam); 0 = sem limite
-    // Para fechar antes do prazo, mesmo com vagas sobrando, troque para false.
-    'inscricoes_abertas' => true,
+    // Começa FECHADO (site no ar antes do pagamento estar pronto): abra pelo painel em Dados do Evento → Inscrições.
+    // Fechado pelo painel antes do prazo, o site mostra "As inscrições ainda não estão abertas."
+    'inscricoes_abertas' => false,
 
     // Contatos exibidos no rodapé e no FAQ.
     'contato' => [

@@ -6,7 +6,7 @@ require_once __DIR__ . '/includes/cupons.php';
 require_once __DIR__ . '/includes/inscricoes.php';
 
 $ev         = evento();
-$fechamento = inscricoes_fechamento(); // null = abertas; 'encerradas' ou 'esgotadas'
+$fechamento = inscricoes_fechamento(); // null = abertas; 'encerradas', 'fechadas' ou 'esgotadas'
 $cam        = $ev['camiseta'];
 $cam_aberta = camiseta_aberta();
 $estados    = ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'];

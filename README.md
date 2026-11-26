@@ -8,7 +8,7 @@
 ## Banco de dados (Etapa 2)
 1. Inicie Apache e MySQL no XAMPP.
 2. Abra http://localhost/phpmyadmin → aba **Importar** → escolha `database/schema.sql` → **Importar**.
-3. Confira `config/banco.php` (no XAMPP: usuário `root`, senha vazia).
+3. Copie `config/banco.exemplo.php` para `config/banco.php` (no XAMPP: usuário `root`, senha vazia, `debug` true). O `banco.php` não vai para o git.
 4. Faça uma inscrição de teste e veja a tabela `inscricoes` no phpMyAdmin.
 
 ## Painel administrativo (Etapa 4)
@@ -45,6 +45,22 @@ Pelo painel (Dados do Evento → Rotas) basta colar o link da rota. O método ab
 No Strava: página da rota → menu "..." → **Embed** → copiar o código. Cole em `config/evento.php`, no campo `mapa_embed` da rota,
 entre as linhas `<<<'HTML'` e `HTML,`.
 
+## Publicar na Hostinger (Git pelo hPanel)
+1. **PHP:** hPanel → Avançado → Configuração do PHP → versão **8.2** ou mais nova.
+2. **Banco:** hPanel → Bancos de dados → Bancos de dados MySQL → crie banco e usuário (anote os nomes com prefixo e a senha).
+   Depois, phpMyAdmin → escolha o banco → **Importar** → `database/schema.sql`.
+3. **Código:** hPanel → Avançado → Git → repositório `git@github.com:hrbraga/pedal-lions.git`, branch `main`,
+   pasta em branco (= `public_html`, que precisa estar vazia). Se o repositório for privado, copie a chave SSH que o hPanel
+   mostra e cadastre no GitHub em Settings → Deploy keys (só leitura). Para atualizar: botão **Implantar** (ou ative a implantação automática).
+4. **Conexão:** Gerenciador de Arquivos → `public_html/config/` → crie `banco.php` copiando `banco.exemplo.php` e preencha
+   com os dados do passo 2 (`debug` false). Como ele não está no git, as atualizações não o apagam.
+5. **HTTPS:** hPanel → Segurança → SSL → instale o certificado grátis e ative "Forçar HTTPS".
+6. **Primeiro administrador:** abra `https://SEU-DOMINIO/admin/` → cadastre usuário e senha (a tela se desativa depois).
+7. **Inscrições:** começam fechadas ("As inscrições ainda não estão abertas."). Abra no painel em Dados do Evento → Inscrições.
+8. **Conferir a proteção:** `https://SEU-DOMINIO/.git/config`, `/database/schema.sql` e `/config/banco.php` devem dar
+   "não encontrado" (404). O `.htaccess` da raiz cuida disso; o de `uploads/` só deixa abrir imagens.
+9. **Logos enviados pelo painel** ficam em `uploads/patrocinadores/` (fora do git): a pasta precisa existir com permissão de
+   escrita (o site a cria sozinho) e deve ser mantida ao mudar de hospedagem. Depois de enviar um logo, abra-o no navegador para conferir.
 ## Onde editar
 - `config/evento.php`: datas, valores, rotas, programação, FAQ, contatos.
 - Inscrições: fecham sozinhas após `inscricoes_prazo_iso` (vale até o fim do dia) ou ao atingir `inscricoes_vagas`

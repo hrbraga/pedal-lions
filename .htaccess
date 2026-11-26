@@ -1,0 +1,7 @@
+# Pastas e arquivos que não são páginas do site respondem "não encontrado".
+# Importante na hospedagem com Git: o repositório inteiro fica dentro da pasta pública.
+RedirectMatch 404 (?i)/(\.git|\.superpowers|docs|tests|database|config|includes)(/|$)
+RedirectMatch 404 (?i)/(README\.md|\.gitignore|\.gitattributes|\.htaccess)$
+
+# Não lista o conteúdo das pastas
+Options -Indexes

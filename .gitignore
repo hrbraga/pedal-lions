@@ -1,2 +1,5 @@
 # Arquivos enviados pelo painel (logos dos patrocinadores): ficam só no servidor
 uploads/patrocinadores/
+
+# Conexão com o banco: cada lugar tem a sua (veja config/banco.exemplo.php)
+config/banco.php

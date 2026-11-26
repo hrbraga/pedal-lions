@@ -8,13 +8,17 @@ require_once __DIR__ . '/db.php';
 
 /**
  * Regra pura (sem banco, testada em tests/inscricoes_test.php).
- * Devolve null se as inscrições estão abertas, ou o motivo: 'encerradas' (interruptor ou prazo) ou 'esgotadas'.
+ * Devolve null se as inscrições estão abertas, ou o motivo: 'encerradas' (prazo vencido), 'fechadas' (interruptor do
+ * painel desligado antes do prazo, ex.: antes de abrir) ou 'esgotadas'.
  * O prazo vale até o fim do dia; prazo vazio = sem prazo; vagas 0 = sem limite.
  */
 function inscricoes_motivo_fechamento(bool $abertas, string $prazo_iso, int $vagas, int $ocupadas, string $hoje_iso): ?string
 {
-    if (!$abertas || ($prazo_iso !== '' && $hoje_iso > $prazo_iso)) {
+    if ($prazo_iso !== '' && $hoje_iso > $prazo_iso) {
         return 'encerradas';
+    }
+    if (!$abertas) {
+        return 'fechadas';
     }
     if ($vagas > 0 && $ocupadas >= $vagas) {
         return 'esgotadas';
@@ -29,7 +33,7 @@ function vagas_ocupadas(PDO $pdo): int
 }
 
 /**
- * Situação das inscrições agora: null = abertas, ou 'encerradas' / 'esgotadas'.
+ * Situação das inscrições agora: null = abertas, ou 'encerradas' / 'fechadas' / 'esgotadas'.
  * Se o banco não responder, não fecha por vagas (o envio do formulário reconfere com o banco).
  */
 function inscricoes_fechamento(?PDO $pdo = null): ?string
@@ -69,5 +73,8 @@ function liberar_trava_vagas(?PDO $pdo, bool &$trava): void
 /** Frase curta para o motivo do fechamento. */
 function inscricoes_texto_fechamento(string $motivo): string
 {
-    return $motivo === 'esgotadas' ? 'As vagas estão esgotadas.' : 'As inscrições estão encerradas.';
+    if ($motivo === 'esgotadas') {
+        return 'As vagas estão esgotadas.';
+    }
+    return $motivo === 'fechadas' ? 'As inscrições ainda não estão abertas.' : 'As inscrições estão encerradas.';
 }
