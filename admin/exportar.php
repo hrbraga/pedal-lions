@@ -4,6 +4,7 @@
  */
 require __DIR__ . '/_bootstrap.php';
 require __DIR__ . '/_filtros.php';
+require_once __DIR__ . '/../includes/pagamento.php';
 admin_exigir('exportar');
 
 [$onde, $params] = montar_filtros($_GET);
@@ -16,7 +17,10 @@ function celula(?string $v): string
 }
 
 try {
-    $st = db()->prepare("SELECT * FROM inscricoes $onde ORDER BY nome ASC");
+    $st = db()->prepare("SELECT inscricoes.*,
+            (SELECT p.metodo FROM pagamentos p WHERE p.mp_id = inscricoes.pagamento_mp_id LIMIT 1) AS pag_metodo,
+            (SELECT p.parcelas FROM pagamentos p WHERE p.mp_id = inscricoes.pagamento_mp_id LIMIT 1) AS pag_parcelas
+        FROM inscricoes $onde ORDER BY nome ASC");
     $st->execute($params);
 } catch (PDOException $e) {
     error_log('Pedal Solidário – erro na exportação: ' . $e->getMessage());
@@ -34,7 +38,7 @@ fwrite($saida, "\xEF\xBB\xBF"); // BOM para o Excel reconhecer acentos
 
 $cabecalho = ['Código', 'Nome', 'CPF', 'Nascimento', 'Sexo', 'E-mail', 'WhatsApp', 'Cidade', 'UF', 'Categoria', 'Equipe',
               'Modelo da camiseta', 'Camiseta', 'Contato de emergência', 'Telefone de emergência', 'Saúde',
-              'Valor inscrição', 'Taxa de administração', 'Cupom', 'Desconto', 'Valor camiseta', 'Valor total', 'Situação', 'Pago em', 'Inscrito em'];
+              'Valor inscrição', 'Taxa de administração', 'Cupom', 'Desconto', 'Valor camiseta', 'Valor total', 'Situação', 'Pago em', 'Forma de pagamento', 'Alerta', 'Inscrito em'];
 fputcsv($saida, $cabecalho, ';', '"', '');
 
 while ($i = $st->fetch()) {
@@ -64,6 +68,8 @@ while ($i = $st->fetch()) {
         number_format((float) $i['valor_total'], 2, ',', ''),
         STATUS_ROTULOS[$i['status']] ?? $i['status'],
         data_hora_br($i['pago_em']),
+        pagamento_forma_texto($i['pag_metodo'] ?? null, $i['pag_parcelas'] ?? null),
+        celula((string) ($i['pagamento_alerta'] ?? '')),
         data_hora_br($i['criado_em']),
     ], ';', '"', '');
 }

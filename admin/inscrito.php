@@ -1,5 +1,6 @@
 <?php
 require __DIR__ . '/_bootstrap.php';
+require_once __DIR__ . '/../includes/pagamento.php';
 admin_exigir('inscritos');
 
 $ev = evento();
@@ -11,6 +12,13 @@ try {
     $st = db()->prepare('SELECT * FROM inscricoes WHERE id = :id LIMIT 1');
     $st->execute([':id' => $id]);
     $i = $st->fetch() ?: null;
+    // Pagamento online que quitou (forma e parcelas)
+    $pag_online = null;
+    if ($i && !empty($i['pagamento_mp_id'])) {
+        $sp = db()->prepare('SELECT metodo, parcelas FROM pagamentos WHERE mp_id = :mp LIMIT 1');
+        $sp->execute([':mp' => $i['pagamento_mp_id']]);
+        $pag_online = $sp->fetch() ?: null;
+    }
 } catch (PDOException $e) {
     error_log('Pedal Solidário – erro ao abrir inscrição: ' . $e->getMessage());
     $erro_banco = banco_debug() ? $e->getMessage() : 'Não foi possível carregar a inscrição.';
@@ -53,6 +61,10 @@ if ($erro_banco): ?>
         <h1><?= e($i['nome']) ?></h1>
         <span class="adm-selo adm-selo--<?= e($i['status']) ?>"><?= e(STATUS_ROTULOS[$i['status']] ?? $i['status']) ?></span>
     </div>
+
+    <?php if (!empty($i['pagamento_alerta'])): ?>
+        <p class="adm-aviso adm-aviso--erro" role="alert"><strong>Atenção:</strong> <?= e($i['pagamento_alerta']) ?>. Confira no painel do Mercado Pago.</p>
+    <?php endif; ?>
 
     <?php if ($idade < 18): ?>
         <p class="adm-aviso"><strong>Menor de idade (<?= (int) $idade ?> anos no dia do evento).</strong> Conferir a autorização assinada pelo responsável na retirada do kit.</p>
@@ -108,6 +120,17 @@ if ($erro_banco): ?>
                 <dt>Total</dt><dd><strong><?= e(moeda((float) $i['valor_total'])) ?></strong></dd>
                 <dt>Situação</dt><dd><?= e(STATUS_ROTULOS[$i['status']] ?? $i['status']) ?></dd>
                 <dt>Pago em</dt><dd><?= $i['pago_em'] ? e(data_hora_br($i['pago_em'])) : '—' ?></dd>
+                <?php if (!empty($i['pagamento_mp_id'])): ?>
+                    <dt>Pagamento</dt><dd><?php $forma = pagamento_forma_texto($pag_online['metodo'] ?? null, $pag_online['parcelas'] ?? null); ?><?= $forma !== '' ? e($forma) . ' · ' : '' ?>Mercado Pago <code><?= e($i['pagamento_mp_id']) ?></code></dd>
+                <?php endif; ?>
+                <?php if (!empty($i['expira_em']) && in_array($i['status'], ['pendente', 'expirado'], true)): ?>
+                    <dt>Prazo para pagar</dt><dd><?= e(data_hora_br($i['expira_em'])) ?><?= $i['status'] === 'expirado' ? ' (vencido)' : '' ?></dd>
+                <?php endif; ?>
+                <?php if (!empty($i['email_instr_em']) || !empty($i['email_instr_erro'])): ?>
+                    <dt>E-mail de instruções</dt>
+                    <dd><?php if (!empty($i['email_instr_em'])): ?>enviado em <?= e(data_hora_br($i['email_instr_em'])) ?>
+                        <?php else: ?><span class="adm-selo adm-selo--alerta">não enviado</span> — <?= e($i['email_instr_erro']) ?><?php endif; ?></dd>
+                <?php endif; ?>
                 <?php if ($i['status'] === 'pago'): ?>
                     <dt>E-mail de confirmação</dt>
                     <dd><?php if (!empty($i['email_pago_em'])): ?>enviado em <?= e(data_hora_br($i['email_pago_em'])) ?>

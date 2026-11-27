@@ -28,6 +28,18 @@ function pagamento_tem_vaga(PDO $pdo, int $vagas): bool
     return $vagas <= 0 || vagas_ocupadas($pdo) < $vagas;
 }
 
+/** Texto da forma de pagamento para o painel/CSV: 'Pix', 'Cartão visa em 2x' ou '' (sem pagamento online). */
+function pagamento_forma_texto(?string $metodo, $parcelas): string
+{
+    if ($metodo === null || $metodo === '') {
+        return '';
+    }
+    if ($metodo === 'pix') {
+        return 'Pix';
+    }
+    return 'Cartão ' . $metodo . ' em ' . max(1, (int) $parcelas) . 'x';
+}
+
 /** Pix pendente mais recente da inscrição: ['copia_cola','qr_base64','expira_em'] ou null. */
 function pagamento_pix_atual(PDO $pdo, int $inscricao_id): ?array
 {
