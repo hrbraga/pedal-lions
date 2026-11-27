@@ -72,7 +72,8 @@ o e-mail de confirmação sai e o valor entra no Financeiro. Quem não paga em *
    (começam com `TEST-`). Em `config/mercadopago.php` (fora do git) preencha `access_token` e `public_key`.
 2. **Aviso de pagamento (webhook):** na mesma aplicação → Webhooks → Configurar notificações → URL de produção
    `https://lionsclubecornelio.com/pagamento_aviso.php`, evento **Pagamentos** → salvar. Copie a **assinatura secreta** para
-   `webhook_secret`. Sem ela os avisos são recusados (a página de pagamento ainda confirma sozinha, consultando o Mercado Pago).
+   `webhook_secret`. Sem ela os avisos são recusados: o site só confirma quando o atleta (ou o painel, no botão
+   "Conferir no Mercado Pago" da inscrição) abre a página de pagamento. Confira o webhook antes de abrir as inscrições.
 3. **Testar:** faça uma inscrição no site com as credenciais de teste e pague com o Pix de teste ou um cartão de teste
    (lista em mercadopago.com.br/developers → Cartões de teste; nome do titular `APRO` aprova, `OTHE` recusa).
 4. **Produção:** troque `access_token` e `public_key` pelas credenciais de produção (e confira o webhook de produção).

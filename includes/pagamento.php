@@ -28,6 +28,24 @@ function pagamento_tem_vaga(PDO $pdo, int $vagas): bool
     return $vagas <= 0 || vagas_ocupadas($pdo) < $vagas;
 }
 
+/**
+ * Por que esta inscrição não pode ser excluída (null = pode): ainda dentro do prazo do Pix (o atleta pode pagar
+ * pelo QR-Code do e-mail) ou já tem pagamento registrado no Mercado Pago. Excluir faria o dinheiro chegar sem dono.
+ */
+function pagamento_motivo_nao_excluir(PDO $pdo, array $insc): ?string
+{
+    $st = $pdo->prepare('SELECT COUNT(*) FROM pagamentos WHERE inscricao_id = :id');
+    $st->execute([':id' => (int) $insc['id']]);
+    if ((int) $st->fetchColumn() > 0) {
+        return 'Esta inscrição tem pagamento registrado no Mercado Pago e não pode ser excluída. Use Cancelar.';
+    }
+    if (($insc['status'] ?? '') === 'pendente' && !empty($insc['expira_em']) && strtotime((string) $insc['expira_em']) > time()) {
+        return 'Esta inscrição ainda pode ser paga pelo Pix até ' . date('d/m \à\s H\hi', strtotime((string) $insc['expira_em']))
+            . '. Use Cancelar ou aguarde o prazo.';
+    }
+    return null;
+}
+
 /** Texto da forma de pagamento para o painel/CSV: 'Pix', 'Cartão visa em 2x' ou '' (sem pagamento online). */
 function pagamento_forma_texto(?string $metodo, $parcelas): string
 {
@@ -150,6 +168,7 @@ function pagamento_processar(PDO $pdo, array $mp, int $vagas, string $site, ?arr
     }
     if (abs(round((float) ($mp['transaction_amount'] ?? 0), 2) - (float) $insc['valor_total']) > 0.004) {
         error_log('Pedal Solidário – pagamento ' . $mp_id . ' com valor ' . ($mp['transaction_amount'] ?? '?') . ' diferente do total ' . $insc['valor_total']);
+        pagamento_alertar($pdo, $id, 'pagamento com valor diferente — conferir no Mercado Pago (' . $mp_id . ')');
         return 'valor_divergente';
     }
 
@@ -203,15 +222,17 @@ function pagamento_processar(PDO $pdo, array $mp, int $vagas, string $site, ?arr
 
 /**
  * A página de pagamento pergunta o status a cada poucos segundos; se o aviso do Mercado Pago ainda não chegou,
- * consulta a API (no máximo uma vez a cada 10 s por inscrição) e aplica o resultado.
+ * consulta a API (no máximo uma vez a cada 10 s por pagamento) e aplica o resultado.
+ * Vale também para expiradas (Pix pago com a página fechada e sem aviso: entra pela regra do pagamento atrasado)
+ * e para pagamentos já registrados como aprovados cuja confirmação falhou no meio.
  */
 function pagamento_consultar(PDO $pdo, array $cfg_mp, array $insc, int $vagas, string $site, ?array $cfg_email): void
 {
-    if (($insc['status'] ?? '') !== 'pendente') {
+    if (!in_array($insc['status'] ?? '', ['pendente', 'expirado'], true)) {
         return;
     }
-    $st = $pdo->prepare("SELECT mp_id FROM pagamentos WHERE inscricao_id = :id AND status IN ('pending', 'in_process')
-                         ORDER BY id DESC LIMIT 1");
+    $st = $pdo->prepare("SELECT mp_id FROM pagamentos WHERE inscricao_id = :id AND status IN ('pending', 'in_process', 'authorized', 'approved')
+                         ORDER BY status = 'approved' DESC, id DESC LIMIT 1");
     $st->execute([':id' => (int) $insc['id']]);
     $mp_id = $st->fetchColumn();
     if ($mp_id === false) {

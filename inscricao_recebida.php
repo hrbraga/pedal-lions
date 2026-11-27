@@ -3,6 +3,7 @@ require_once __DIR__ . '/includes/funcoes.php';
 require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/inscricoes.php';
 require_once __DIR__ . '/includes/pagamento.php';
+require_once __DIR__ . '/includes/email_pagamento.php';
 
 $ev = evento();
 $inscricao = null;
@@ -16,6 +17,17 @@ if (preg_match('/^[A-F0-9]{10}$/', $codigo)) {
                              FROM inscricoes WHERE codigo = :c LIMIT 1');
         $st->execute([':c' => $codigo]);
         $inscricao = $st->fetch() ?: null;
+        // Pagou com a página fechada e o aviso do Mercado Pago não chegou? Confere antes de mostrar (no máximo a cada 10 s)
+        $cfg_consulta = mp_config();
+        if ($inscricao && $cfg_consulta && in_array($inscricao['status'], ['pendente', 'expirado'], true)) {
+            try {
+                pagamento_consultar(db(), $cfg_consulta, $inscricao, (int) ($ev['inscricoes_vagas'] ?? 0), email_site_base($_SERVER), email_config());
+                $st->execute([':c' => $codigo]);
+                $inscricao = $st->fetch() ?: null;
+            } catch (Throwable $e) {
+                error_log('Pedal Solidário – conferência do pagamento: ' . $e->getMessage());
+            }
+        }
         if ($inscricao && $inscricao['status'] === 'pendente' && !empty($inscricao['expira_em'])) {
             $pix = pagamento_pix_atual(db(), (int) $inscricao['id']);
         }
@@ -76,6 +88,8 @@ $rotulos = ['pendente' => 'Aguardando pagamento', 'pago' => 'Pagamento confirmad
                 </div>
             <?php elseif ($inscricao['status'] === 'cancelado'): ?>
                 <p class="aviso aviso--erro"><strong>Inscrição cancelada.</strong> Em caso de dúvida, fale com a organização.</p>
+            <?php elseif ($cfg_mp): /* pendente sem prazo (feita/reaberta no painel): o pagamento é combinado com a organização */ ?>
+                <p class="aviso"><strong>Sua vaga ainda não está garantida.</strong> A inscrição só é efetivada após a confirmação do pagamento. O pagamento desta inscrição é combinado diretamente com a organização.</p>
             <?php else: ?>
                 <p class="aviso"><strong>Sua vaga ainda não está garantida.</strong> A inscrição só é efetivada após a confirmação do pagamento. As instruções de pagamento serão divulgadas em breve e enviadas ao seu e-mail.</p>
             <?php endif; ?>

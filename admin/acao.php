@@ -25,7 +25,7 @@ $acao = post_txt('acao');
 
 try {
     $pdo = db();
-    $st = $pdo->prepare('SELECT id, nome, email, cpf, status, pago_em, email_pago_em FROM inscricoes WHERE id = :id');
+    $st = $pdo->prepare('SELECT id, codigo, nome, email, cpf, status, pago_em, email_pago_em, expira_em FROM inscricoes WHERE id = :id');
     $st->execute([':id' => $id]);
     $insc = $st->fetch();
 
@@ -95,10 +95,29 @@ try {
                 flash('erro', 'Inscrição já paga não pode ser excluída (o valor está no financeiro). Use Cancelar.');
                 break;
             }
+            // Pix ainda pagável ou pagamento registrado: excluir faria o dinheiro chegar sem dono
+            if ($motivo = pagamento_motivo_nao_excluir($pdo, $insc)) {
+                flash('erro', $motivo);
+                break;
+            }
             $pdo->prepare('DELETE FROM inscricoes WHERE id = :id')->execute([':id' => $id]);
             flash('ok', 'Inscrição de ' . $insc['nome'] . ' excluída definitivamente.');
             header('Location: painel.php');
             exit;
+
+        case 'conferir_mp':
+            // Consulta o Mercado Pago agora (aviso perdido, Pix pago com a página fechada)
+            $cfg_mp = mp_config();
+            if (!$cfg_mp) {
+                flash('erro', 'Pagamento online não configurado (config/mercadopago.php).');
+                break;
+            }
+            $pdo->prepare('UPDATE pagamentos SET consultado_em = NULL WHERE inscricao_id = :id')->execute([':id' => $id]);
+            pagamento_consultar($pdo, $cfg_mp, $insc, (int) (evento()['inscricoes_vagas'] ?? 0), email_site_base($_SERVER), email_config());
+            $st->execute([':id' => $id]);
+            $depois = $st->fetch();
+            flash('ok', $depois['status'] === $insc['status'] ? 'Conferido no Mercado Pago: nenhum pagamento aprovado.' : 'Conferido no Mercado Pago: pagamento encontrado e aplicado.');
+            break;
 
         default:
             flash('erro', 'Ação inválida.');

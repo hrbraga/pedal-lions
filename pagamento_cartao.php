@@ -52,13 +52,33 @@ try {
         $responder('erro', 'O prazo de pagamento terminou.');
     }
 
+    // Já há cartão aprovado ou em análise (a confirmação pode estar a caminho): não cobra de novo
+    $em_curso = $pdo->prepare("SELECT COUNT(*) FROM pagamentos WHERE inscricao_id = :id AND metodo <> 'pix'
+                                AND status IN ('approved', 'in_process', 'authorized', 'pending')");
+    $em_curso->execute([':id' => (int) $insc['id']]);
+    if ((int) $em_curso->fetchColumn() > 0) {
+        $responder('in_process', 'Já existe um pagamento com cartão em análise para esta inscrição. Aguarde a confirmação por e-mail antes de tentar de novo.');
+    }
+
     $r = mp_criar_cartao($cfg, $insc, ['installments' => $parcelas] + $form);
+    if ($r['http'] === 0) {
+        // Sem resposta: o Mercado Pago pode ter cobrado. Não convidar a cobrar de novo; o aviso confirma se foi aprovado
+        error_log('Pedal Solidário – cartão da inscrição ' . $codigo . ' sem resposta: ' . ($r['erro'] ?? '?'));
+        $responder('erro', 'Não conseguimos confirmar o pagamento com o Mercado Pago. Aguarde alguns minutos antes de tentar de novo: '
+            . 'se o pagamento foi aprovado, você recebe a confirmação por e-mail.');
+    }
     if (!is_array($r['dados']) || empty($r['dados']['id'])) {
         error_log('Pedal Solidário – cartão da inscrição ' . $codigo . ': ' . ($r['erro'] ?? 'resposta inesperada'));
         $responder('rejected', 'Pagamento recusado. Confira os dados ou tente outro cartão.');
     }
     $status = (string) ($r['dados']['status'] ?? '');
-    $resultado = pagamento_processar($pdo, $r['dados'], (int) (evento()['inscricoes_vagas'] ?? 0), email_site_base($_SERVER), email_config());
+    try {
+        $resultado = pagamento_processar($pdo, $r['dados'], (int) (evento()['inscricoes_vagas'] ?? 0), email_site_base($_SERVER), email_config());
+    } catch (Throwable $e) {
+        // O cartão já foi cobrado: a confirmação vem pela consulta da página ou pelo aviso do Mercado Pago
+        error_log('Pedal Solidário – cartão cobrado, confirmação pendente (' . $codigo . '): ' . $e->getMessage());
+        $responder('in_process', 'Pagamento enviado ao Mercado Pago. Aguardando a confirmação; não é preciso pagar de novo.');
+    }
 } catch (Throwable $e) {
     error_log('Pedal Solidário – pagamento com cartão: ' . $e->getMessage());
     $responder('erro', 'Não foi possível concluir o pagamento agora. Tente novamente em instantes.', 500);

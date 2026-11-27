@@ -165,6 +165,7 @@ try {
     $mp2['transaction_amount'] = 1.0;
     confere('valor divergente não confirma', pagamento_processar($pdo, $mp2, 0, $site, null), 'valor_divergente');
     confere('valor divergente: continua pendente', status_de($p2), 'pendente');
+    confere('valor divergente: alerta no painel (revisão I2)', str_contains((string) linha($p2)['pagamento_alerta'], 'pagamento com valor diferente'), true);
 
     $p3 = insc_teste(['cpf' => '90000000013'], 'NOW() - INTERVAL 1 MINUTE');
     inscricoes_expirar($pdo);
@@ -225,6 +226,29 @@ try {
     $g1 = pedidos_get();
     pagamento_consultar($pdo, $cfg_mp, linha($p9), 0, $site, null);
     confere('consulta seguida não chama a API de novo', pedidos_get(), $g1);
+
+    // Revisão I1: pagamento já registrado como aprovado (o processamento falhou depois) é reaplicado pela consulta
+    $p30 = insc_teste(['cpf' => '90000000030'], 'NOW() + INTERVAL 1 HOUR');
+    pagamento_registrar($pdo, $p30, pagamento_falso($p30, 'approved', 'APRO'));
+    pagamento_consultar($pdo, $cfg_mp, linha($p30), 0, $site, null);
+    confere('consulta reaplica pagamento aprovado não processado', status_de($p30), 'pago');
+
+    // Revisão I3: Pix pago com o modal fechado e sem aviso; a inscrição expirou → a consulta ainda confirma
+    $p31 = insc_teste(['cpf' => '90000000031'], 'NOW() + INTERVAL 1 HOUR');
+    $pix31 = mp_criar_pix($cfg_mp, linha($p31), date('Y-m-d\TH:i:s.vP', time() + 3600));
+    pagamento_registrar($pdo, $p31, $pix31['dados']);
+    mp_falso_mudar(PORTA_MP, $pix31['dados']['id'], ['status' => 'approved']);
+    $pdo->exec("UPDATE inscricoes SET expira_em = NOW() - INTERVAL 1 MINUTE WHERE id = $p31");
+    inscricoes_expirar($pdo);
+    pagamento_consultar($pdo, $cfg_mp, linha($p31), 0, $site, null);
+    confere('expirada com Pix pago: consulta confirma (pago_atrasado)', status_de($p31), 'pago');
+
+    // Revisão I2: não se exclui inscrição que ainda pode ser paga ou que tem pagamento registrado
+    $p32 = insc_teste(['cpf' => '90000000032'], 'NOW() + INTERVAL 1 HOUR');
+    confere('excluir pendente dentro do prazo é recusado', is_string(pagamento_motivo_nao_excluir($pdo, linha($p32))), true);
+    $p33 = insc_teste(['cpf' => '90000000033']);
+    confere('excluir pendente feita à mão (sem prazo, sem pagamento) pode', pagamento_motivo_nao_excluir($pdo, linha($p33)), null);
+    confere('excluir inscrição com pagamento registrado é recusado', is_string(pagamento_motivo_nao_excluir($pdo, linha($p9))), true);
 
     // ---- Gerar o Pix da inscrição ----
     $p11 = insc_teste(['cpf' => '90000000021'], 'NOW() + INTERVAL 6 HOUR');
@@ -287,6 +311,24 @@ try {
     confere('em análise: mensagem', [$rc['status'] ?? null, $rc['mensagem'] ?? null],
             ['in_process', 'Pagamento em análise pelo Mercado Pago. Avisaremos por e-mail assim que for aprovado.']);
     confere('3 parcelas é recusado', $cartao($p15, ['installments' => 3])['status'] ?? null, 'erro');
+    // Revisão I1: com um pagamento em análise, um novo cartão não é cobrado
+    $n2 = $posts();
+    $rc = $cartao($p15, ['token' => 'APRO']);
+    confere('cartão com pagamento em análise não cobra de novo', [$rc['status'] ?? null, $posts()], ['in_process', $n2]);
+    // Revisão I1: cobrou, mas a confirmação falhou (trava ocupada) → não manda tentar de novo
+    $p34 = insc_teste(['cpf' => '90000000034'], 'NOW() + INTERVAL 6 HOUR');
+    $pdo->query("SELECT GET_LOCK('pedal_solidario_vagas', 0)");
+    $rc = $cartao($p34);
+    $pdo->query("SELECT RELEASE_LOCK('pedal_solidario_vagas')");
+    confere('cobrou mas não confirmou: responde em análise', $rc['status'] ?? null, 'in_process');
+    confere('cobrou mas não confirmou: consulta confirma depois', (function () use ($pdo, $cfg_mp, $p34, $site) {
+        pagamento_consultar($pdo, $cfg_mp, linha($p34), 0, $site, null);
+        return status_de($p34);
+    })(), 'pago');
+    // Revisão I1: Mercado Pago sem resposta (pode ter cobrado) → não manda "tentar outro cartão"
+    $p35 = insc_teste(['cpf' => '90000000035'], 'NOW() + INTERVAL 6 HOUR');
+    $rc = $cartao($p35, ['token' => 'LENTO']);
+    confere('sem resposta do Mercado Pago: não diz recusado', [$rc['status'] ?? null, str_contains((string) ($rc['mensagem'] ?? ''), 'Aguarde')], ['erro', true]);
     $p16 = insc_teste(['cpf' => '90000000026'], 'NOW() + INTERVAL 6 HOUR');
     $pdo->exec("UPDATE inscricoes SET expira_em = NOW() - INTERVAL 1 SECOND WHERE id = $p16");
     $n1 = $posts();

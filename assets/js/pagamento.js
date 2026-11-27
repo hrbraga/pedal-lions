@@ -227,7 +227,7 @@
                                     }
                                 })
                                 .catch(function () {
-                                    mensagemCartao('Não foi possível concluir o pagamento agora. Tente novamente em instantes.', true);
+                                    mensagemCartao('Não conseguimos confirmar o pagamento agora. Aguarde alguns minutos antes de tentar de novo: se ele foi aprovado, esta tela e o seu e-mail confirmam sozinhos.', true);
                                 });
                         },
                         onError: function (erro) {

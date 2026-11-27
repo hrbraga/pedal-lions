@@ -19,6 +19,13 @@ try {
         $sp->execute([':mp' => $i['pagamento_mp_id']]);
         $pag_online = $sp->fetch() ?: null;
     }
+    // Tem pagamento no Mercado Pago? (botão "Conferir no Mercado Pago" para pendentes/expiradas)
+    $tem_pag_mp = false;
+    if ($i) {
+        $sc = db()->prepare('SELECT COUNT(*) FROM pagamentos WHERE inscricao_id = :id');
+        $sc->execute([':id' => (int) $i['id']]);
+        $tem_pag_mp = (int) $sc->fetchColumn() > 0;
+    }
 } catch (PDOException $e) {
     error_log('Pedal Solidário – erro ao abrir inscrição: ' . $e->getMessage());
     $erro_banco = banco_debug() ? $e->getMessage() : 'Não foi possível carregar a inscrição.';
@@ -78,6 +85,9 @@ if ($erro_banco): ?>
             <?php campo_acao('email_pago', empty($i['email_pago_em']) ? 'Enviar e-mail de confirmação' : 'Reenviar e-mail de confirmação', 'adm-btn--claro',
                 'Enviar o e-mail de confirmação para ' . $i['email'] . '?', $i, $voltar_detalhe); ?>
             <?php campo_acao('pendente', 'Voltar para pendente', 'adm-btn--claro', 'Desfazer a confirmação e voltar para pendente?', $i, $voltar_detalhe); ?>
+        <?php endif; ?>
+        <?php if ($tem_pag_mp && in_array($i['status'], ['pendente', 'expirado'], true)): ?>
+            <?php campo_acao('conferir_mp', 'Conferir no Mercado Pago', 'adm-btn--claro', 'Consultar agora no Mercado Pago se esta inscrição foi paga?', $i, $voltar_detalhe); ?>
         <?php endif; ?>
         <?php if ($i['status'] !== 'cancelado'): ?>
             <?php campo_acao('cancelado', 'Cancelar inscrição', 'adm-btn--claro', 'Cancelar esta inscrição?', $i, $voltar_detalhe); ?>

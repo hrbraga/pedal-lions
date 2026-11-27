@@ -61,6 +61,14 @@ if ($metodo === 'POST' && $caminho === '/v1/payments') {
             // PNG 1×1 transparente
             'qr_code_base64' => 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
         ]];
+    } elseif (($corpo['token'] ?? '') === 'LENTO') {
+        // Cobra e não responde a tempo (o cliente desiste em 15 s): simula resposta perdida depois da cobrança
+        $p['status'] = 'approved';
+        $p['status_detail'] = 'accredited';
+        $estado['pagamentos'][$id] = $p;
+        file_put_contents($arquivo, json_encode($estado));
+        sleep(17);
+        $responder(201, $p);
     } else {
         $p['status'] = ['APRO' => 'approved', 'OTHE' => 'rejected', 'CONT' => 'in_process'][$corpo['token'] ?? ''] ?? 'rejected';
         $p['status_detail'] = ['approved' => 'accredited', 'rejected' => 'cc_rejected_other_reason', 'in_process' => 'pending_contingency'][$p['status']];
