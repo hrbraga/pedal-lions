@@ -13,7 +13,8 @@ require_once __DIR__ . '/funcoes.php';
 function email_pago_mensagem(array $insc, array $ev, string $site): array
 {
     $nome     = trim((string) ($insc['nome'] ?? ''));
-    $primeiro = $nome === '' ? '' : preg_split('/\s+/', $nome)[0];
+    $saudacao = 'Olá, Atleta ' . preg_replace('/\s+/u', ' ', $nome) . '!';
+    $logo     = is_file(__DIR__ . '/../assets/img/logo.png') ? realpath(__DIR__ . '/../assets/img/logo.png') : null;
     $org      = (string) ($ev['organizador'] ?? 'Lions Clube de Cornélio Procópio');
 
     $categoria = (string) ($insc['categoria'] ?? '');
@@ -63,7 +64,7 @@ function email_pago_mensagem(array $insc, array $ev, string $site): array
 
     // ---------- Texto puro ----------
     $t   = [];
-    $t[] = 'Olá, ' . $primeiro . '!';
+    $t[] = $saudacao;
     $t[] = '';
     $t[] = 'O pagamento da sua inscrição no ' . $nome_evento . ' foi confirmado. Obrigado por pedalar com a gente!';
     $t[] = '';
@@ -110,10 +111,13 @@ function email_pago_mensagem(array $insc, array $ev, string $site): array
         . '<body style="margin:0;padding:0;background:#F3F5FA;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.5">'
         . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F3F5FA"><tr><td align="center" style="padding:24px 12px">'
         . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:#FFFFFF;border-radius:8px;overflow:hidden">'
-        . '<tr><td style="background:#0A1E4D;padding:20px 24px;color:#FFFFFF;font-size:20px;font-weight:bold">'
-        . e($nome_evento) . '<div style="color:#F5B800;font-size:15px;margin-top:4px">Pagamento confirmado</div></td></tr>'
+        . '<tr><td style="background:#0A1E4D;padding:16px 24px">'
+        . '<table role="presentation" cellpadding="0" cellspacing="0"><tr>'
+        . ($logo !== null ? '<td style="padding-right:14px;vertical-align:middle"><img src="cid:logo-lions" alt="Lions Clube" width="60" height="57" style="display:block;border:0"></td>' : '')
+        . '<td style="vertical-align:middle;color:#FFFFFF;font-size:20px;font-weight:bold">' . e($nome_evento)
+        . '<div style="color:#F5B800;font-size:15px;margin-top:4px">Pagamento confirmado</div></td></tr></table></td></tr>'
         . '<tr><td style="padding:24px;color:#142038">'
-        . '<p style="margin:0 0 12px">Olá, ' . e($primeiro) . '!</p>'
+        . '<p style="margin:0 0 12px">' . e($saudacao) . '</p>'
         . '<p style="margin:0 0 20px">O pagamento da sua inscrição no ' . e($nome_evento) . ' foi confirmado. Obrigado por pedalar com a gente!</p>'
         . '<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 20px">' . $linhas($dados) . '</table>'
         . '<h2 style="font-size:17px;color:#0A1E4D;margin:0 0 8px;border-top:1px solid #D9DFEC;padding-top:16px">O evento</h2>'
@@ -125,7 +129,8 @@ function email_pago_mensagem(array $insc, array $ev, string $site): array
         . '<p style="margin:20px 0 0">Até lá!<br><strong>' . e($org) . '</strong></p>'
         . '</td></tr></table></td></tr></table></body></html>';
 
-    return ['assunto' => 'Pagamento confirmado – ' . $nome_evento, 'texto' => implode("\n", $t) . "\n", 'html' => $h];
+    return ['assunto' => 'Pagamento confirmado – ' . $nome_evento, 'texto' => implode("\n", $t) . "\n", 'html' => $h,
+            'imagens' => $logo !== null ? ['logo-lions' => $logo] : []];
 }
 
 /** Endereço do site (https://dominio/pasta) a partir do pedido atual, sem barra no fim. */
@@ -203,6 +208,10 @@ function email_enviar(?array $cfg, string $para, string $nome_para, array $msg):
         $mail->Subject = (string) $msg['assunto'];
         $mail->Body    = (string) $msg['html'];
         $mail->AltBody = (string) $msg['texto'];
+        // Imagens dentro do e-mail (o HTML as usa por src="cid:...")
+        foreach ($msg['imagens'] ?? [] as $cid => $caminho) {
+            $mail->addEmbeddedImage($caminho, $cid, basename($caminho));
+        }
         $mail->send();
         return null;
     } catch (\Throwable $e) {
@@ -250,7 +259,7 @@ function email_teste_mensagem(array $ev, string $site): array
 {
     $modelos = camiseta_modelos($ev['camiseta'] ?? []);
     $exemplo = [
-        'nome'             => 'Atleta de Teste',
+        'nome'             => 'Fulano de Tal',
         'codigo'           => 'TESTE00001',
         'categoria'        => (string) ($ev['categorias'][0]['slug'] ?? ''),
         'camiseta_modelo'  => $modelos[0]['slug'] ?? null,

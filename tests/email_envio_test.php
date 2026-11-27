@@ -55,6 +55,14 @@ try {
     confere('remetente com o nome do Lions', $cab['From'] ?? null, 'Lions Clube de Cornélio Procópio <contato@exemplo.test>');
     confere('assunto em UTF-8', $cab['Subject'] ?? null, 'Pagamento confirmado – 2º Pedal Solidário');
 
+    // Imagem anexada dentro do e-mail (logo): vai como parte "related" com Content-ID
+    @unlink($arquivo);
+    $logo = ['imagens' => ['logo-lions' => __DIR__ . '/../assets/img/logo.png'], 'html' => '<img src="cid:logo-lions">'] + $msg;
+    confere('envio com logo aceito', email_enviar($cfg, 'maria@t.test', 'Maria', $logo), null);
+    $rec = (string) @file_get_contents($arquivo);
+    confere('logo vai anexado (multipart/related)', str_contains($rec, 'multipart/related'), true);
+    confere('logo com Content-ID', str_contains($rec, 'Content-ID: <logo-lions>'), true);
+
     $r = email_enviar($cfg, 'nao-e-email', 'X', $msg);
     confere('endereço inválido dá erro', is_string($r) && $r !== '', true);
 

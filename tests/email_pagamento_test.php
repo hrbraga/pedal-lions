@@ -41,7 +41,7 @@ $site = 'https://site.test';
 
 $m = email_pago_mensagem($insc, $ev, $site);
 confere('assunto', $m['assunto'], 'Pagamento confirmado – 2º Pedal Solidário');
-foreach (['Olá, Maria', 'PS12345678', 'Light', 'Manga longa, tamanho G', 'R$ 216,00', 'Domingo, 14 de março de 2027',
+foreach (['Olá, Atleta Maria da Silva!', 'PS12345678', 'Light', 'Manga longa, tamanho G', 'R$ 216,00', 'Domingo, 14 de março de 2027',
           'Bosque Municipal', '7:50 – Largada Light', '7:40 – Largada Hard', 'https://site.test/regulamento.php',
           'https://chat.whatsapp.com/ABC', '(43) 99675-9480', 'Lions Clube de Cornélio Procópio'] as $t) {
     contem('texto', $m['texto'], $t);
@@ -70,9 +70,15 @@ contem('sem grupo (texto)', $g['texto'], 'chat.whatsapp', false);
 contem('sem grupo (html)', $g['html'], 'chat.whatsapp', false);
 
 $x = email_pago_mensagem(['nome' => '<b>&"Zé" Ana'] + $insc, $ev, $site);
-contem('html escapa o nome', $x['html'], 'Olá, &lt;b&gt;&amp;&quot;Zé&quot;!');
+contem('html escapa o nome', $x['html'], 'Olá, Atleta &lt;b&gt;&amp;&quot;Zé&quot; Ana!');
 contem('html sem a tag crua', $x['html'], '<b>&', false);
-contem('texto mantém o nome', $x['texto'], 'Olá, <b>&"Zé"!');
+contem('texto mantém o nome', $x['texto'], 'Olá, Atleta <b>&"Zé" Ana!');
+confere('espaços extras no nome somem', str_contains(email_pago_mensagem(['nome' => '  Ana   Lima '] + $insc, $ev, $site)['texto'], 'Olá, Atleta Ana Lima!'), true);
+
+// Logo do Lions anexado ao e-mail (aparece mesmo com imagens externas bloqueadas)
+confere('logo: anexo aponta para o arquivo', isset($m['imagens']['logo-lions']) && is_file($m['imagens']['logo-lions']), true);
+contem('logo: html usa o anexo', $m['html'], 'src="cid:logo-lions"');
+contem('logo: texto alternativo', $m['html'], 'alt="Lions Clube"');
 
 confere('endereço do site (produção)', email_site_base(['HTTPS' => 'on', 'HTTP_HOST' => 'lionsclubecornelio.com', 'SCRIPT_NAME' => '/admin/acao.php']), 'https://lionsclubecornelio.com');
 confere('endereço do site (XAMPP em pasta)', email_site_base(['HTTP_HOST' => '[::1]', 'SCRIPT_NAME' => '/pedal-solidario/admin/acao.php']), 'http://[::1]/pedal-solidario');
@@ -85,7 +91,8 @@ confere('motivo curto: ponto em endereço não corta', email_motivo_curto('Ender
 // E-mail de teste do painel: mesma mensagem, dados de exemplo e [TESTE] no assunto
 $tt = email_teste_mensagem($ev, $site);
 confere('teste: assunto', $tt['assunto'], '[TESTE] Pagamento confirmado – 2º Pedal Solidário');
-contem('teste: saudação de exemplo', $tt['texto'], 'Olá, Atleta!');
+contem('teste: saudação de exemplo', $tt['texto'], 'Olá, Atleta Fulano de Tal!');
+confere('teste: leva o logo', isset($tt['imagens']['logo-lions']), true);
 contem('teste: código de exemplo', $tt['texto'], 'TESTE00001');
 contem('teste: aviso de que é teste', $tt['html'], 'Este é um e-mail de teste');
 contem('teste: botão do regulamento', $tt['html'], 'Clique aqui para ler o regulamento');
