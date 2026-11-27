@@ -27,7 +27,7 @@ $banner = imagem_opcional('banner.png'); // Se existir assets/img/banner.jpg, el
             <?php if (!empty($ev['lista_inscritos_publica'])): ?>
                 <a class="btn btn--contorno" href="inscritos.php">Ver inscritos</a>
             <?php endif; ?>
-            <a class="btn btn--contorno" href="avatar.php">Eu vou!</a>
+            <a class="btn btn--contorno" href="avatar.php">Faça seu avatar!</a>
         </div>
 
         <p class="hero__contagem" data-contagem="<?= e($ev['data_iso']) ?>"></p>
