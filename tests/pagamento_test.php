@@ -226,6 +226,26 @@ try {
     pagamento_consultar($pdo, $cfg_mp, linha($p9), 0, $site, null);
     confere('consulta seguida não chama a API de novo', pedidos_get(), $g1);
 
+    // ---- Gerar o Pix da inscrição ----
+    $p11 = insc_teste(['cpf' => '90000000021'], 'NOW() + INTERVAL 6 HOUR');
+    $posts = fn () => count(array_filter(mp_falso_estado(PORTA_MP)['pedidos'] ?? [], fn ($p) => $p['metodo'] === 'POST' && $p['caminho'] === '/v1/payments'));
+    $n0 = $posts();
+    confere('gera o Pix de uma pendente', pagamento_gerar_pix($pdo, $cfg_mp, $p11), null);
+    $atual = pagamento_pix_atual($pdo, $p11);
+    confere('Pix atual: copia e cola', str_starts_with((string) ($atual['copia_cola'] ?? ''), '00020126FALSO'), true);
+    confere('Pix atual: imagem', ($atual['qr_base64'] ?? '') !== '', true);
+    confere('Pix atual: vence junto com a inscrição', $atual['expira_em'] ?? null, linha($p11)['expira_em']);
+    confere('gerar de novo não cria outro Pix', [pagamento_gerar_pix($pdo, $cfg_mp, $p11), $posts()], [null, $n0 + 1]);
+    $p12 = insc_teste(['cpf' => '90000000022'], 'NOW() - INTERVAL 1 MINUTE');
+    inscricoes_expirar($pdo);
+    confere('não gera Pix de expirada', is_string(pagamento_gerar_pix($pdo, $cfg_mp, $p12)), true);
+    $p13 = insc_teste(['cpf' => '90000000023'], 'NOW() + INTERVAL 6 HOUR');
+    $n_pag = (int) $pdo->query('SELECT COUNT(*) FROM pagamentos')->fetchColumn();
+    $r = pagamento_gerar_pix($pdo, ['api' => 'http://127.0.0.1:25269'] + $cfg_mp, $p13);
+    confere('Mercado Pago fora do ar não perde a inscrição', [is_string($r) && $r !== '', status_de($p13)], [true, 'pendente']);
+    confere('Mercado Pago fora do ar: nada registrado', (int) $pdo->query('SELECT COUNT(*) FROM pagamentos')->fetchColumn(), $n_pag);
+    confere('sem Pix: atual é null', pagamento_pix_atual($pdo, $p13), null);
+
     // ---- Endpoints ----
     $p10 = insc_teste(['cpf' => '90000000020'], 'NOW() + INTERVAL 1 HOUR');
     $pix10 = mp_criar_pix($cfg_mp, linha($p10), date('Y-m-d\TH:i:s.vP', time() + 3600));
@@ -241,6 +261,12 @@ try {
     confere('aviso assinado: inscrição paga', status_de($p10), 'pago');
     [$http] = chamar('pagamento_aviso.php?type=merchant_order&data.id=1', 'POST', '{}');
     confere('aviso de outro tipo → 200 sem fazer nada', $http, 200);
+
+    $ctxpix = fn ($c) => json_decode((string) @file_get_contents('http://127.0.0.1:' . PORTA_SITE . '/pagamento_pix.php', false, stream_context_create(['http' => [
+        'method' => 'POST', 'header' => "Content-Type: application/x-www-form-urlencoded\r\n", 'content' => 'c=' . $c, 'ignore_errors' => true]])), true);
+    $rp = $ctxpix(linha($p13)['codigo']);
+    confere('Tentar de novo gera o Pix que tinha falhado', [$rp['ok'] ?? null, str_starts_with((string) ($rp['pix']['copia_cola'] ?? ''), '00020126FALSO')], [true, true]);
+    confere('Tentar de novo numa expirada não gera', $ctxpix(linha($p12)['codigo'])['ok'] ?? null, false);
 
     [$http, $resp] = chamar('pagamento_status.php?c=FFFFFFFFFF');
     confere('status de código inexistente → 404', $http, 404);

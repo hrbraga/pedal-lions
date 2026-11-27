@@ -5,6 +5,7 @@ require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/cupons.php';
 require_once __DIR__ . '/includes/inscricoes.php';
 require_once __DIR__ . '/includes/pagamento.php';
+require_once __DIR__ . '/includes/email_pagamento.php';
 
 $ev         = evento();
 $fechamento = inscricoes_fechamento(); // null = abertas; 'encerradas', 'fechadas', 'em_breve' ou 'esgotadas'
@@ -182,15 +183,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     // Total zerado (ex.: cupom de 100%) não tem o que pagar: já entra como pago
                     $status = $valor_total <= 0 ? 'pago' : 'pendente';
                     $pago_em = $status === 'pago' ? date('Y-m-d H:i:s') : null;
+                    // Pagamento online ligado (config/mercadopago.php): a pendente tem prazo e o Pix é gerado logo após gravar
+                    $cfg_mp       = mp_config();
+                    $pagar_online = $cfg_mp !== null && $status === 'pendente';
 
                     $sql = 'INSERT INTO inscricoes
                             (codigo, nome, cpf, nascimento, sexo, email, telefone, cidade, uf, categoria, equipe,
                              camiseta_modelo, camiseta_tamanho, emerg_nome, emerg_tel, saude, aceite_regulamento, aceite_termo,
-                             valor_inscricao, valor_desconto, cupom_id, cupom_codigo, valor_taxa, valor_camiseta, valor_total, status, pago_em)
+                             valor_inscricao, valor_desconto, cupom_id, cupom_codigo, valor_taxa, valor_camiseta, valor_total, status, pago_em, expira_em)
                             VALUES
                             (:codigo, :nome, :cpf, :nascimento, :sexo, :email, :telefone, :cidade, :uf, :categoria, :equipe,
                              :camiseta_modelo, :camiseta_tamanho, :emerg_nome, :emerg_tel, :saude, 1, 1,
-                             :valor_inscricao, :valor_desconto, :cupom_id, :cupom_codigo, :valor_taxa, :valor_camiseta, :valor_total, :status, :pago_em)';
+                             :valor_inscricao, :valor_desconto, :cupom_id, :cupom_codigo, :valor_taxa, :valor_camiseta, :valor_total, :status, :pago_em,
+                             ' . ($pagar_online ? 'NOW() + INTERVAL ' . (int) PAGAMENTO_PRAZO_HORAS . ' HOUR' : 'NULL') . ')';
                     $stmt = $pdo->prepare($sql);
 
                     for ($tentativa = 0; $tentativa < 5 && $codigo === null; $tentativa++) {
@@ -224,6 +229,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 ':pago_em'          => $pago_em,
                             ]);
                             $codigo = $candidato;
+                            $novo_id = (int) $pdo->lastInsertId();
                         } catch (PDOException $e) {
                             $dup = ($e->errorInfo[1] ?? 0) === 1062;
                             if ($dup && stripos($e->getMessage(), 'cpf') !== false) {
@@ -242,6 +248,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $pdo->commit();
                     liberar_trava_vagas($pdo, $trava_vagas);
                     unset($_SESSION['csrf']);
+                    if ($pagar_online) {
+                        // Fora da trava: o Mercado Pago e o e-mail podem levar alguns segundos. Falhas só ficam registradas;
+                        // a inscrição está gravada e a página de pagamento oferece "Tentar de novo".
+                        try {
+                            pagamento_gerar_pix($pdo, $cfg_mp, $novo_id);
+                            email_instrucoes_enviar($pdo, $novo_id, email_site_base($_SERVER), email_config());
+                        } catch (Throwable $e) {
+                            error_log('Pedal Solidário – pós-inscrição (Pix/e-mail): ' . $e->getMessage());
+                        }
+                        header('Location: inscricao_recebida.php?c=' . $codigo . '&pagar=1');
+                        exit;
+                    }
                     header('Location: inscricao_recebida.php?c=' . $codigo);
                     exit;
                 }

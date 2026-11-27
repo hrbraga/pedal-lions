@@ -99,5 +99,31 @@ contem('teste: código de exemplo', $tt['texto'], 'TESTE00001');
 contem('teste: aviso de que é teste', $tt['html'], 'Este é um e-mail de teste');
 contem('teste: botão do regulamento', $tt['html'], 'Clique aqui para ler o regulamento');
 
+// ---- E-mail de instruções de pagamento ----
+$pend = ['nome' => 'Maria da Silva', 'email' => 'maria@t.test', 'codigo' => 'AB12CD34EF', 'valor_total' => '92.70',
+         'expira_em' => '2026-11-28 14:30:00'];
+$pix  = ['copia_cola' => '00020126FALSO1001', 'qr_base64' => base64_encode('PNGFALSO'), 'expira_em' => '2026-11-28 14:30:00'];
+$mi = email_instrucoes_mensagem($pend, $ev, $site, $pix);
+confere('instruções: assunto', $mi['assunto'], 'Pague sua inscrição até 28/11 às 14h30 – 2º Pedal Solidário');
+contem('instruções: saudação', $mi['texto'], 'Olá, Atleta Maria da Silva!');
+contem('instruções: copia e cola no texto', $mi['texto'], '00020126FALSO1001');
+contem('instruções: total', $mi['texto'], 'R$ 92,70');
+contem('instruções: link de pagamento', $mi['texto'], 'https://site.test/inscricao_recebida.php?c=AB12CD34EF&pagar=1');
+contem('instruções: prazo', $mi['texto'], '28/11 às 14h30');
+contem('instruções: vaga liberada', $mi['texto'], 'Depois do prazo, a inscrição expira e a vaga é liberada.');
+contem('instruções: QR no HTML', $mi['html'], 'cid:qr-pix');
+contem('instruções: copia e cola no HTML', $mi['html'], '00020126FALSO1001');
+contem('instruções: botão pagar', $mi['html'], 'Clique aqui para pagar (Pix ou cartão)');
+contem('instruções: link escapado no HTML', $mi['html'], 'inscricao_recebida.php?c=AB12CD34EF&amp;pagar=1');
+confere('instruções: imagem do QR anexada', $mi['imagens_dados']['qr-pix'] ?? null, ['dados' => 'PNGFALSO', 'tipo' => 'image/png']);
+$sem = email_instrucoes_mensagem($pend, $ev, $site, null);
+contem('instruções sem Pix: sem QR', $sem['html'], 'cid:qr-pix', false);
+contem('instruções sem Pix: sem copia e cola', $sem['texto'], '00020126', false);
+contem('instruções sem Pix: botão presente', $sem['html'], 'Clique aqui para pagar (Pix ou cartão)');
+confere('instruções sem Pix: nenhuma imagem extra', $sem['imagens_dados'], []);
+$esc = email_instrucoes_mensagem(['nome' => 'Ana <b>&"Zé"'] + $pend, $ev, $site, $pix);
+contem('instruções: nome escapado no HTML', $esc['html'], 'Ana &lt;b&gt;&amp;&quot;Zé&quot;');
+contem('instruções: nome cru no HTML não aparece', $esc['html'], '<b>&', false);
+
 echo $falhas ? "\n$falhas falha(s)\n" : "\nTudo certo\n";
 exit($falhas ? 1 : 0);

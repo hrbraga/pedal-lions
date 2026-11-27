@@ -28,6 +28,44 @@ function pagamento_tem_vaga(PDO $pdo, int $vagas): bool
     return $vagas <= 0 || vagas_ocupadas($pdo) < $vagas;
 }
 
+/** Pix pendente mais recente da inscrição: ['copia_cola','qr_base64','expira_em'] ou null. */
+function pagamento_pix_atual(PDO $pdo, int $inscricao_id): ?array
+{
+    $st = $pdo->prepare("SELECT pix_copia_cola AS copia_cola, pix_qr_base64 AS qr_base64, pix_expira_em AS expira_em
+                         FROM pagamentos WHERE inscricao_id = :id AND metodo = 'pix' AND status = 'pending'
+                           AND pix_copia_cola IS NOT NULL AND (pix_expira_em IS NULL OR pix_expira_em > NOW())
+                         ORDER BY id DESC LIMIT 1");
+    $st->execute([':id' => $inscricao_id]);
+    return $st->fetch() ?: null;
+}
+
+/**
+ * Cria no Mercado Pago o Pix de uma inscrição pendente, vencendo junto com ela (expira_em).
+ * null = criado (ou já havia um Pix válido); senão o motivo curto. Não muda a inscrição se o Mercado Pago falhar.
+ */
+function pagamento_gerar_pix(PDO $pdo, array $cfg_mp, int $inscricao_id): ?string
+{
+    $st = $pdo->prepare('SELECT *, expira_em > NOW() AS no_prazo FROM inscricoes WHERE id = :id');
+    $st->execute([':id' => $inscricao_id]);
+    $insc = $st->fetch();
+    if (!$insc || $insc['status'] !== 'pendente') {
+        return 'inscrição não está pendente';
+    }
+    if (empty($insc['expira_em']) || !(int) $insc['no_prazo']) {
+        return 'o prazo de pagamento terminou';
+    }
+    if (pagamento_pix_atual($pdo, $inscricao_id) !== null) {
+        return null;
+    }
+    $r = mp_criar_pix($cfg_mp, $insc, date('Y-m-d\TH:i:s.000P', strtotime((string) $insc['expira_em'])));
+    if ($r['erro'] !== null || !is_array($r['dados']) || empty($r['dados']['id'])) {
+        error_log('Pedal Solidário – Pix da inscrição ' . $insc['codigo'] . ' não gerado: ' . ($r['erro'] ?? 'resposta inesperada'));
+        return $r['erro'] ?? 'resposta inesperada do Mercado Pago';
+    }
+    pagamento_registrar($pdo, $inscricao_id, $r['dados']);
+    return null;
+}
+
 /** Guarda (ou atualiza) um pagamento do Mercado Pago na tabela pagamentos. */
 function pagamento_registrar(PDO $pdo, int $inscricao_id, array $mp): void
 {

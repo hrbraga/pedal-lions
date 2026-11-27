@@ -63,6 +63,13 @@ try {
     confere('logo vai anexado (multipart/related)', str_contains($rec, 'multipart/related'), true);
     confere('logo com Content-ID', str_contains($rec, 'Content-ID: <logo-lions>'), true);
 
+    // Imagem gerada na hora (QR-Code do Pix, vindo em base64): também vai como parte "related"
+    @unlink($arquivo);
+    $qr = ['imagens_dados' => ['qr-pix' => ['dados' => base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='), 'tipo' => 'image/png']],
+           'html' => '<img src="cid:qr-pix">'] + $msg;
+    confere('envio com QR aceito', email_enviar($cfg, 'maria@t.test', 'Maria', $qr), null);
+    confere('QR com Content-ID', str_contains((string) @file_get_contents($arquivo), 'Content-ID: <qr-pix>'), true);
+
     $r = email_enviar($cfg, 'nao-e-email', 'X', $msg);
     confere('endereço inválido dá erro', is_string($r) && $r !== '', true);
 

@@ -136,6 +136,88 @@ function email_pago_mensagem(array $insc, array $ev, string $site): array
             'imagens' => $logo !== null ? ['logo-lions' => $logo] : []];
 }
 
+/**
+ * E-mail de instruções de pagamento, enviado ao concluir a inscrição (pagamento online ligado).
+ * $insc: linha de inscricoes (usa nome, codigo, valor_total, expira_em); $pix: ['copia_cola','qr_base64','expira_em']
+ * ou null (Pix não gerado: vai só o botão para a página de pagamento).
+ * Retorna ['assunto','texto','html','imagens','imagens_dados'].
+ */
+function email_instrucoes_mensagem(array $insc, array $ev, string $site, ?array $pix): array
+{
+    $nome        = trim((string) ($insc['nome'] ?? ''));
+    $saudacao    = 'Olá, Atleta ' . preg_replace('/\s+/u', ' ', $nome) . '!';
+    $logo        = is_file(__DIR__ . '/../assets/img/logo.png') ? realpath(__DIR__ . '/../assets/img/logo.png') : null;
+    $org         = (string) ($ev['organizador'] ?? 'Lions Clube de Cornélio Procópio');
+    $nome_evento = (string) ($ev['nome'] ?? '2º Pedal Solidário');
+    $prazo       = !empty($insc['expira_em']) ? date('d/m \à\s H\hi', strtotime((string) $insc['expira_em'])) : '';
+    $total       = moeda((float) ($insc['valor_total'] ?? 0));
+    $link        = $site . '/inscricao_recebida.php?c=' . rawurlencode((string) ($insc['codigo'] ?? '')) . '&pagar=1';
+    $copia       = $pix !== null ? (string) ($pix['copia_cola'] ?? '') : '';
+    $qr          = $pix !== null ? base64_decode((string) ($pix['qr_base64'] ?? ''), true) : false;
+    $tem_qr      = $qr !== false && $qr !== '';
+    $aviso_prazo = 'Depois do prazo, a inscrição expira e a vaga é liberada.';
+
+    // ---------- Texto puro ----------
+    $t   = [$saudacao, ''];
+    $t[] = 'Recebemos sua inscrição no ' . $nome_evento . '. Para garantir a vaga, falta o pagamento.';
+    $t[] = '';
+    $t[] = 'Código da inscrição: ' . ($insc['codigo'] ?? '');
+    $t[] = 'Total a pagar: ' . $total;
+    if ($prazo !== '') {
+        $t[] = 'Pague até: ' . $prazo;
+    }
+    $t[] = '';
+    if ($copia !== '') {
+        $t[] = 'PIX COPIA E COLA (abra o app do seu banco, escolha Pix copia e cola e cole o código):';
+        $t[] = $copia;
+        $t[] = '';
+    }
+    $t[] = 'Para pagar com Pix ou cartão de crédito (até 2x), acesse: ' . $link;
+    $t[] = '';
+    $t[] = $aviso_prazo;
+    $t[] = '';
+    $t[] = $org;
+
+    // ---------- HTML ----------
+    $h  = '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+        . '<title>' . e('Pagamento da inscrição') . '</title></head>'
+        . '<body style="margin:0;padding:0;background:#F3F5FA;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.5">'
+        . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F3F5FA"><tr><td align="center" style="padding:24px 12px">'
+        . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:#FFFFFF;border-radius:8px;overflow:hidden">'
+        . '<tr><td style="background:#0A1E4D;padding:16px 24px">'
+        . '<table role="presentation" cellpadding="0" cellspacing="0"><tr>'
+        . ($logo !== null ? '<td style="padding-right:14px;vertical-align:middle"><img src="cid:logo-lions" alt="Lions Clube" width="60" height="57" style="display:block;border:0"></td>' : '')
+        . '<td style="vertical-align:middle;color:#FFFFFF;font-size:20px;font-weight:bold">' . e($nome_evento)
+        . '<div style="color:#F5B800;font-size:15px;margin-top:4px">Pagamento da inscrição</div></td></tr></table></td></tr>'
+        . '<tr><td style="padding:24px;color:#142038">'
+        . '<p style="margin:0 0 12px">' . e($saudacao) . '</p>'
+        . '<p style="margin:0 0 16px">Recebemos sua inscrição no ' . e($nome_evento) . '. Para garantir a vaga, falta o pagamento.</p>'
+        . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 18px;background:#F3F5FA;border-radius:6px"><tr><td style="padding:14px 16px">'
+        . '<div style="color:#55627D;font-size:14px">Total a pagar</div><div style="color:#0A1E4D;font-size:26px;font-weight:bold">' . e($total) . '</div>'
+        . ($prazo !== '' ? '<div style="margin-top:4px">Pague até <strong>' . e($prazo) . '</strong></div>' : '')
+        . '<div style="color:#55627D;font-size:14px;margin-top:4px">Inscrição ' . e((string) ($insc['codigo'] ?? '')) . '</div>'
+        . '</td></tr></table>'
+        . ($tem_qr ? '<p style="margin:0 0 8px;text-align:center;font-weight:bold;color:#0A1E4D">Pague com Pix</p>'
+            . '<p style="margin:0 0 12px;text-align:center"><img src="cid:qr-pix" alt="QR-Code do Pix" width="200" height="200" style="border:1px solid #D9DFEC;border-radius:6px"></p>' : '')
+        . ($copia !== '' ? '<p style="margin:0 0 6px;color:#55627D;font-size:14px">Pix copia e cola (abra o app do banco, escolha Pix copia e cola e cole o código):</p>'
+            . '<p style="margin:0 0 18px;padding:10px 12px;background:#F3F5FA;border:1px solid #D9DFEC;border-radius:6px;font-family:Consolas,Menlo,monospace;font-size:13px;word-break:break-all">' . e($copia) . '</p>' : '')
+        . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 10px"><tr>'
+        . '<td align="center" bgcolor="#F5B800" style="background:#F5B800;border-radius:6px">'
+        . '<a href="' . e($link) . '" target="_blank" style="display:block;padding:13px 16px;color:#0A1E4D;font-weight:bold;font-size:16px;text-decoration:none">'
+        . e('Clique aqui para pagar (Pix ou cartão)') . '</a></td></tr></table>'
+        . '<p style="margin:16px 0 0;color:#55627D;font-size:14px">' . e($aviso_prazo) . ' Cartão de crédito em até 2x.</p>'
+        . '<p style="margin:20px 0 0"><strong>' . e($org) . '</strong></p>'
+        . '</td></tr></table></td></tr></table></body></html>';
+
+    return [
+        'assunto'       => 'Pague sua inscrição' . ($prazo !== '' ? ' até ' . $prazo : '') . ' – ' . $nome_evento,
+        'texto'         => implode("\n", $t) . "\n",
+        'html'          => $h,
+        'imagens'       => $logo !== null ? ['logo-lions' => $logo] : [],
+        'imagens_dados' => $tem_qr ? ['qr-pix' => ['dados' => $qr, 'tipo' => 'image/png']] : [],
+    ];
+}
+
 /** Endereço do site (https://dominio/pasta) a partir do pedido atual, sem barra no fim. */
 function email_site_base(array $server): string
 {
@@ -215,6 +297,10 @@ function email_enviar(?array $cfg, string $para, string $nome_para, array $msg):
         foreach ($msg['imagens'] ?? [] as $cid => $caminho) {
             $mail->addEmbeddedImage($caminho, $cid, basename($caminho));
         }
+        // Imagens geradas na hora (ex.: QR-Code do Pix): ['cid' => ['dados' => bytes, 'tipo' => 'image/png']]
+        foreach ($msg['imagens_dados'] ?? [] as $cid => $img) {
+            $mail->addStringEmbeddedImage((string) $img['dados'], $cid, $cid . '.png', \PHPMailer\PHPMailer\PHPMailer::ENCODING_BASE64, (string) ($img['tipo'] ?? 'image/png'));
+        }
         $mail->send();
         return null;
     } catch (\Throwable $e) {
@@ -243,6 +329,29 @@ function email_pago_enviar(PDO $pdo, int $id, string $site, ?array $cfg): ?strin
         $pdo->prepare('UPDATE inscricoes SET email_pago_em = NOW(), email_pago_erro = NULL WHERE id = :id')->execute([':id' => $id]);
     } else {
         $pdo->prepare('UPDATE inscricoes SET email_pago_erro = :erro WHERE id = :id')->execute([':erro' => $erro, ':id' => $id]);
+    }
+    return $erro;
+}
+
+/**
+ * Envia o e-mail de instruções de pagamento de uma inscrição pendente (com o Pix atual, se houver) e registra
+ * o resultado (email_instr_em / email_instr_erro). null = enviado.
+ */
+function email_instrucoes_enviar(PDO $pdo, int $id, string $site, ?array $cfg): ?string
+{
+    require_once __DIR__ . '/pagamento.php';
+    $st = $pdo->prepare('SELECT * FROM inscricoes WHERE id = :id');
+    $st->execute([':id' => $id]);
+    $insc = $st->fetch();
+    if (!$insc) {
+        return 'inscrição não encontrada';
+    }
+    $msg  = email_instrucoes_mensagem($insc, evento(), $site, pagamento_pix_atual($pdo, $id));
+    $erro = email_enviar($cfg, (string) $insc['email'], (string) $insc['nome'], $msg);
+    if ($erro === null) {
+        $pdo->prepare('UPDATE inscricoes SET email_instr_em = NOW(), email_instr_erro = NULL WHERE id = :id')->execute([':id' => $id]);
+    } else {
+        $pdo->prepare('UPDATE inscricoes SET email_instr_erro = :erro WHERE id = :id')->execute([':erro' => $erro, ':id' => $id]);
     }
     return $erro;
 }
