@@ -147,7 +147,12 @@ function email_config(?string $arquivo = null): ?array
     if (!is_file($arquivo)) {
         return null;
     }
-    $cfg = include $arquivo;
+    try {
+        $cfg = include $arquivo;
+    } catch (\Throwable $e) { // erro de digitação no arquivo: segue como "não configurado" e registra no log
+        error_log('Pedal Solidário – config/email.php com erro: ' . $e->getMessage());
+        return null;
+    }
     if (!is_array($cfg) || trim((string) ($cfg['host'] ?? '')) === '' || trim((string) ($cfg['usuario'] ?? '')) === '') {
         return null;
     }
@@ -182,7 +187,9 @@ function email_enviar(?array $cfg, string $para, string $nome_para, array $msg):
             $mail->SMTPSecure = '';
             $mail->SMTPAutoTLS = false;
         }
+        // Desiste em segundos também quando o servidor conecta e trava (o padrão de espera é de minutos)
         $mail->Timeout = 15;
+        $mail->getSMTPInstance()->Timelimit = 15;
         $mail->setFrom((string) $cfg['usuario'], (string) $cfg['nome']);
         $mail->addReplyTo((string) $cfg['usuario'], (string) $cfg['nome']);
         $mail->addAddress($para, $nome_para);

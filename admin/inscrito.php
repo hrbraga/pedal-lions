@@ -37,7 +37,8 @@ if ($erro_banco): ?>
 
     function campo_acao(string $acao, string $rotulo, string $classe, string $confirmacao, array $i, string $voltar): void
     { ?>
-        <form method="post" action="acao.php" onsubmit="return confirm('<?= e($confirmacao) ?>');">
+        <?php // O texto vira string JavaScript (json_encode) antes do escape HTML: apóstrofo no e-mail não quebra nem injeta código ?>
+        <form method="post" action="acao.php" onsubmit="return confirm(<?= e(json_encode($confirmacao, JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE)) ?>);">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="id" value="<?= (int) $i['id'] ?>">
             <input type="hidden" name="acao" value="<?= e($acao) ?>">

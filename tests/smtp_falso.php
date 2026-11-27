@@ -1,7 +1,8 @@
 <?php
 /**
  * Servidor SMTP falso, só para testes: aceita qualquer login e guarda cada mensagem num arquivo.
- * Uso: php tests/smtp_falso.php <porta> <arquivo>
+ * Uso: php tests/smtp_falso.php <porta> <arquivo> [mudo]
+ * Com "mudo": aceita a conexão e nunca responde (servidor travado).
  * Cada mensagem recebida é anexada ao arquivo, seguida de uma linha "=====". Roda até ser encerrado.
  */
 [$porta, $arquivo] = [(int) ($argv[1] ?? 2525), (string) ($argv[2] ?? 'smtp_falso.txt')];
@@ -10,7 +11,13 @@ if (!$srv) {
     fwrite(STDERR, "não abriu a porta $porta: $errstr\n");
     exit(1);
 }
+$mudo = ($argv[3] ?? '') === 'mudo';
+$abertas = [];
 while ($c = @stream_socket_accept($srv, -1)) {
+    if ($mudo) {
+        $abertas[] = $c; // segura a conexão sem dizer nada
+        continue;
+    }
     $diz = function (string $linha) use ($c) {
         fwrite($c, $linha . "\r\n");
     };
