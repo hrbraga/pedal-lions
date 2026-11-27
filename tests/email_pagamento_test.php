@@ -71,5 +71,9 @@ confere('endereço do site (produção)', email_site_base(['HTTPS' => 'on', 'HTT
 confere('endereço do site (XAMPP em pasta)', email_site_base(['HTTP_HOST' => '[::1]', 'SCRIPT_NAME' => '/pedal-solidario/admin/acao.php']), 'http://[::1]/pedal-solidario');
 confere('endereço do site (HTTPS off)', email_site_base(['HTTPS' => 'off', 'HTTP_HOST' => 'localhost:8123', 'SCRIPT_NAME' => '/admin/acao.php']), 'http://localhost:8123');
 
+confere('motivo curto: primeira frase', email_motivo_curto('Erro de SMTP: Não foi possível conectar ao servidor SMTP. Failed to connect to server Código 10061'), 'Erro de SMTP: Não foi possível conectar ao servidor SMTP');
+confere('motivo curto: sem ponto fica igual', email_motivo_curto('e-mail não configurado'), 'e-mail não configurado');
+confere('motivo curto: ponto em endereço não corta', email_motivo_curto('Endereço de e-mail inválido:  (to): a.b'), 'Endereço de e-mail inválido:  (to): a.b');
+
 echo $falhas ? "\n$falhas falha(s)\n" : "\nTudo certo\n";
 exit($falhas ? 1 : 0);

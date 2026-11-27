@@ -40,7 +40,7 @@ try {
     $pagina_atual  = min($pagina_atual, $total_paginas);
     $offset        = ($pagina_atual - 1) * $por_pagina;
 
-    $st = $pdo->prepare("SELECT id, codigo, nome, cpf, categoria, equipe, camiseta_tamanho, valor_total, status, criado_em
+    $st = $pdo->prepare("SELECT id, codigo, nome, cpf, categoria, equipe, camiseta_tamanho, valor_total, status, email_pago_em, criado_em
                          FROM inscricoes $onde
                          ORDER BY criado_em DESC, id DESC
                          LIMIT " . (int) $por_pagina . " OFFSET " . (int) $offset);
@@ -226,7 +226,7 @@ require __DIR__ . '/_topo.php';
                     <td><?= e($l['equipe'] ?? '') ?></td>
                     <td><?= e($l['camiseta_tamanho'] ?? '—') ?></td>
                     <td class="num"><?= e(moeda((float) $l['valor_total'])) ?></td>
-                    <td><span class="adm-selo adm-selo--<?= e($l['status']) ?>"><?= e(STATUS_ROTULOS[$l['status']] ?? $l['status']) ?></span></td>
+                    <td><span class="adm-selo adm-selo--<?= e($l['status']) ?>"><?= e(STATUS_ROTULOS[$l['status']] ?? $l['status']) ?></span><?php if ($l['status'] === 'pago' && empty($l['email_pago_em'])): ?> <span class="adm-selo adm-selo--alerta" title="Abra a inscrição para reenviar">e-mail não enviado</span><?php endif; ?></td>
                     <td><?= e(data_hora_br($l['criado_em'])) ?></td>
                     <td class="acoes">
                         <?php if ($l['status'] === 'pendente'): ?>

@@ -73,7 +73,7 @@ function email_pago_mensagem(array $insc, array $ev, string $site): array
     $t[] = '';
     $t[] = 'O EVENTO';
     foreach ($evento as [$r, $v]) {
-        $t[] = $r . ': ' . str_replace("\n", "\n  ", strpos($v, "\n") !== false ? "\n" . $v : $v);
+        $t[] = strpos($v, "\n") !== false ? $r . ":\n  " . str_replace("\n", "\n  ", $v) : $r . ': ' . $v;
     }
     $t[] = 'Programação completa: ' . $programacao;
     $t[] = 'Regulamento: ' . $regulamento;
@@ -220,4 +220,11 @@ function email_pago_enviar(PDO $pdo, int $id, string $site, ?array $cfg): ?strin
         $pdo->prepare('UPDATE inscricoes SET email_pago_erro = :erro WHERE id = :id')->execute([':erro' => $erro, ':id' => $id]);
     }
     return $erro;
+}
+
+/** Primeira frase do motivo da falha, para o aviso do painel (o motivo inteiro fica na inscrição). */
+function email_motivo_curto(string $erro): string
+{
+    $partes = preg_split('/\.\s/u', $erro, 2);
+    return rtrim($partes[0], '.');
 }

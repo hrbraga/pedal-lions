@@ -62,6 +62,8 @@ if ($erro_banco): ?>
             <?php campo_acao('pago', 'Confirmar pagamento', '', 'Confirmar o pagamento desta inscrição?', $i, $voltar_detalhe); ?>
         <?php endif; ?>
         <?php if ($i['status'] === 'pago'): ?>
+            <?php campo_acao('email_pago', empty($i['email_pago_em']) ? 'Enviar e-mail de confirmação' : 'Reenviar e-mail de confirmação', 'adm-btn--claro',
+                'Enviar o e-mail de confirmação para ' . $i['email'] . '?', $i, $voltar_detalhe); ?>
             <?php campo_acao('pendente', 'Voltar para pendente', 'adm-btn--claro', 'Desfazer a confirmação e voltar para pendente?', $i, $voltar_detalhe); ?>
         <?php endif; ?>
         <?php if ($i['status'] !== 'cancelado'): ?>
@@ -105,6 +107,11 @@ if ($erro_banco): ?>
                 <dt>Total</dt><dd><strong><?= e(moeda((float) $i['valor_total'])) ?></strong></dd>
                 <dt>Situação</dt><dd><?= e(STATUS_ROTULOS[$i['status']] ?? $i['status']) ?></dd>
                 <dt>Pago em</dt><dd><?= $i['pago_em'] ? e(data_hora_br($i['pago_em'])) : '—' ?></dd>
+                <?php if ($i['status'] === 'pago'): ?>
+                    <dt>E-mail de confirmação</dt>
+                    <dd><?php if (!empty($i['email_pago_em'])): ?>enviado em <?= e(data_hora_br($i['email_pago_em'])) ?>
+                        <?php else: ?><span class="adm-selo adm-selo--alerta">não enviado</span><?= !empty($i['email_pago_erro']) ? ' — ' . e($i['email_pago_erro']) : '' ?><?php endif; ?></dd>
+                <?php endif; ?>
                 <dt>Inscrito em</dt><dd><?= e(data_hora_br($i['criado_em'])) ?></dd>
                 <dt>Aceites</dt><dd>Regulamento e termo de responsabilidade aceitos no ato da inscrição</dd>
             </dl>

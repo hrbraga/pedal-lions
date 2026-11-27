@@ -1,8 +1,10 @@
 <?php
 /**
- * Ações sobre uma inscrição: confirmar pagamento, reabrir (voltar a pendente), cancelar ou excluir.
+ * Ações sobre uma inscrição: confirmar pagamento, reabrir (voltar a pendente), cancelar, excluir ou
+ * enviar de novo o e-mail de pagamento confirmado.
  */
 require __DIR__ . '/_bootstrap.php';
+require_once __DIR__ . '/../includes/email_pagamento.php';
 admin_exigir('inscritos');
 
 $voltar = destino_seguro((string) ($_POST['voltar'] ?? ''));
@@ -22,7 +24,7 @@ $acao = post_txt('acao');
 
 try {
     $pdo = db();
-    $st = $pdo->prepare('SELECT id, nome, status, pago_em FROM inscricoes WHERE id = :id');
+    $st = $pdo->prepare('SELECT id, nome, email, status, pago_em, email_pago_em FROM inscricoes WHERE id = :id');
     $st->execute([':id' => $id]);
     $insc = $st->fetch();
 
@@ -35,7 +37,30 @@ try {
     switch ($acao) {
         case 'pago':
             $pdo->prepare("UPDATE inscricoes SET status = 'pago', pago_em = COALESCE(pago_em, NOW()) WHERE id = :id")->execute([':id' => $id]);
-            flash('ok', 'Pagamento confirmado: ' . $insc['nome'] . '.');
+            // Avisa o atleta por e-mail uma vez só (reconfirmar depois de voltar a pendente não reenvia)
+            if (!empty($insc['email_pago_em'])) {
+                flash('ok', 'Pagamento confirmado: ' . $insc['nome'] . '. O e-mail de confirmação já tinha sido enviado.');
+                break;
+            }
+            $erro = email_pago_enviar($pdo, $id, email_site_base($_SERVER), email_config());
+            if ($erro === null) {
+                flash('ok', 'Pagamento confirmado: ' . $insc['nome'] . '. E-mail enviado para ' . $insc['email'] . '.');
+            } else {
+                flash('erro', 'Pagamento confirmado: ' . $insc['nome'] . '. O e-mail não foi enviado (' . email_motivo_curto($erro) . '). Use "Reenviar e-mail de confirmação" na inscrição.');
+            }
+            break;
+
+        case 'email_pago':
+            if ($insc['status'] !== 'pago') {
+                flash('erro', 'Só inscrições pagas recebem o e-mail de confirmação.');
+                break;
+            }
+            $erro = email_pago_enviar($pdo, $id, email_site_base($_SERVER), email_config());
+            if ($erro === null) {
+                flash('ok', 'E-mail de confirmação enviado para ' . $insc['email'] . '.');
+            } else {
+                flash('erro', 'O e-mail não foi enviado (' . email_motivo_curto($erro) . ').');
+            }
             break;
 
         case 'pendente':
