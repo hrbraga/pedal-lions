@@ -268,6 +268,32 @@ try {
     confere('Tentar de novo gera o Pix que tinha falhado', [$rp['ok'] ?? null, str_starts_with((string) ($rp['pix']['copia_cola'] ?? ''), '00020126FALSO')], [true, true]);
     confere('Tentar de novo numa expirada não gera', $ctxpix(linha($p12)['codigo'])['ok'] ?? null, false);
 
+    // Cartão pelo endpoint (o formulário do Mercado Pago manda token, parcelas, bandeira e pagador)
+    $cartao = function (int $id, array $extra = []) {
+        $f = $extra + ['codigo' => linha($id)['codigo'], 'token' => 'APRO', 'installments' => 2, 'payment_method_id' => 'visa', 'issuer_id' => '25',
+                       'transaction_amount' => 1, 'payer' => ['email' => 'teste@t.test', 'identification' => ['type' => 'CPF', 'number' => '52998224725']]];
+        [, $resp] = chamar('pagamento_cartao.php', 'POST', json_encode($f));
+        return json_decode($resp, true) ?: [];
+    };
+    $p14 = insc_teste(['cpf' => '90000000024'], 'NOW() + INTERVAL 6 HOUR');
+    confere('cartão APRO pelo endpoint → approved', $cartao($p14)['status'] ?? null, 'approved');
+    confere('cartão aprovado: inscrição paga', status_de($p14), 'pago');
+    $p15 = insc_teste(['cpf' => '90000000025'], 'NOW() + INTERVAL 6 HOUR');
+    $rc = $cartao($p15, ['token' => 'OTHE']);
+    confere('cartão OTHE → rejected', $rc['status'] ?? null, 'rejected');
+    confere('recusado: mensagem', $rc['mensagem'] ?? null, 'Pagamento recusado. Confira os dados ou tente outro cartão.');
+    confere('recusado: continua pendente', status_de($p15), 'pendente');
+    $rc = $cartao($p15, ['token' => 'CONT']);
+    confere('em análise: mensagem', [$rc['status'] ?? null, $rc['mensagem'] ?? null],
+            ['in_process', 'Pagamento em análise pelo Mercado Pago. Avisaremos por e-mail assim que for aprovado.']);
+    confere('3 parcelas é recusado', $cartao($p15, ['installments' => 3])['status'] ?? null, 'erro');
+    $p16 = insc_teste(['cpf' => '90000000026'], 'NOW() + INTERVAL 6 HOUR');
+    $pdo->exec("UPDATE inscricoes SET expira_em = NOW() - INTERVAL 1 SECOND WHERE id = $p16");
+    $n1 = $posts();
+    $rc = $cartao($p16);
+    confere('cartão depois do prazo é recusado', [$rc['status'] ?? null, $posts()], ['erro', $n1]);
+    confere('cartão numa inscrição paga é recusado', $cartao($p14)['status'] ?? null, 'erro');
+
     [$http, $resp] = chamar('pagamento_status.php?c=FFFFFFFFFF');
     confere('status de código inexistente → 404', $http, 404);
     [$http, $resp] = chamar('pagamento_status.php?c=' . linha($p10)['codigo']);

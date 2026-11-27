@@ -920,3 +920,59 @@ dialog.modal p { margin: 0; color: var(--suave); }
 .lista-pessoas li[hidden] { display: none; }
 .lista-pessoas strong { display: block; }
 .lista-pessoas span { color: var(--suave); font-size: .92rem; }
+
+/* ---------- Modal de pagamento (Mercado Pago) ---------- */
+body.pag-aberto { overflow: hidden; }
+.pag-modal { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+.pag-modal[hidden] { display: none; }
+.pag-modal__veu { position: absolute; inset: 0; background: rgba(10, 30, 77, .6); }
+.pag-modal__caixa { position: relative; width: 100%; max-width: 420px; max-height: calc(100vh - 2rem); overflow-y: auto;
+    background: var(--branco); border-radius: 12px; box-shadow: 0 18px 50px rgba(0, 0, 0, .35); }
+.pag-modal__topo { display: flex; align-items: center; gap: .75rem; padding: .9rem 1.1rem; background: var(--azul); color: var(--branco); }
+.pag-modal__topo img { flex: none; }
+.pag-modal__titulo { flex: 1; min-width: 0; }
+.pag-modal__titulo strong { display: block; font-family: var(--fonte-titulo); font-size: 1.3rem; letter-spacing: .3px; }
+.pag-modal__titulo small { display: block; opacity: .85; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pag-modal__fechar { flex: none; background: none; border: 0; color: var(--branco); font-size: 1.8rem; line-height: 1; cursor: pointer; padding: 0 .25rem; opacity: .85; }
+.pag-modal__fechar:hover, .pag-modal__fechar:focus-visible { opacity: 1; }
+.pag-resumo { display: flex; justify-content: space-between; align-items: baseline; padding: .75rem 1.1rem; background: var(--papel);
+    border-bottom: 1px solid var(--linha); color: var(--suave); }
+.pag-resumo b { font-family: var(--fonte-titulo); font-size: 1.7rem; color: var(--azul); }
+.pag-abas { display: flex; border-bottom: 1px solid var(--linha); }
+.pag-abas [role=tab] { flex: 1; padding: .75rem 0; background: none; border: 0; border-bottom: 3px solid transparent;
+    font: inherit; font-weight: 600; color: var(--suave); cursor: pointer; }
+.pag-abas [role=tab][aria-selected=true] { color: var(--azul); border-bottom-color: var(--ouro); }
+.pag-abas [role=tab]:focus-visible { outline: 2px solid var(--ouro); outline-offset: -4px; }
+.pag-painel { padding: 1rem 1.1rem 1.2rem; }
+.pag-painel[hidden], .pag-modal [hidden] { display: none; }
+.pag-qr { display: block; margin: 0 auto .6rem; width: 200px; height: 200px; padding: 6px; border: 1px solid var(--linha); border-radius: 8px;
+    background: var(--branco); image-rendering: pixelated; }
+.pag-prazo { text-align: center; margin: 0 0 .8rem; font-size: .95rem; }
+.pag-prazo b { color: var(--azul); }
+.pag-copia { display: flex; gap: .4rem; }
+.pag-copia input { flex: 1; min-width: 0; font: inherit; font-size: .85rem; padding: .55rem .6rem; border: 1px solid var(--linha);
+    border-radius: var(--raio); color: var(--suave); background: var(--papel); }
+.pag-copia .btn { font-size: 1rem; padding: .5rem .9rem; }
+.pag-passos { margin: .8rem 0 0; padding-left: 1.2rem; font-size: .9rem; color: var(--suave); line-height: 1.45; }
+.pag-esperando { display: flex; align-items: center; justify-content: center; gap: .5rem; margin: .8rem 0 0; font-size: .9rem; color: var(--suave); }
+.pag-pulso { width: 9px; height: 9px; border-radius: 50%; background: var(--ouro); animation: pag-pulso 1.2s infinite; }
+@keyframes pag-pulso { 50% { opacity: .25; } }
+.pag-falha { text-align: center; padding: 1rem 0; }
+.pag-nota { margin: .7rem 0 0; font-size: .85rem; color: var(--suave); text-align: center; }
+.pag-msg { margin: .7rem 0 0; padding: .6rem .8rem; border-radius: var(--raio); background: #FFF6D6; color: #6B4E00; font-size: .92rem; }
+.pag-msg--erro { background: #FCEDEB; color: var(--erro); }
+.pag-ok { text-align: center; padding: 1.6rem 1.4rem 1.3rem; }
+.pag-ok__circ { width: 68px; height: 68px; margin: 0 auto .8rem; border-radius: 50%; background: #E3F2E8; color: var(--ok);
+    display: flex; align-items: center; justify-content: center; }
+.pag-ok h2 { font-family: var(--fonte-titulo); font-size: 1.8rem; color: var(--ok); margin: 0 0 .4rem; }
+.pag-ok h2:focus { outline: none; }
+.pag-ok p { margin: 0 0 .4rem; color: var(--suave); }
+.pag-ok__codigo { display: inline-block; margin: .5rem 0 .9rem; padding: .35rem .8rem; border-radius: var(--raio); background: var(--papel);
+    font-weight: 700; letter-spacing: 1px; color: var(--azul); }
+.pag-bloco { display: block; width: 100%; text-align: center; margin-top: .9rem; }
+.pag-link { display: block; width: 100%; margin-top: .3rem; padding: .6rem; background: none; border: 0; font: inherit; color: var(--suave); cursor: pointer; }
+@media (max-width: 480px) {
+    .pag-modal { padding: 0; align-items: stretch; }
+    .pag-modal__caixa { max-width: none; max-height: none; min-height: 100%; border-radius: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .pag-pulso { animation: none; } }
