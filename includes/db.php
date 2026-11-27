@@ -23,9 +23,31 @@ function db(): PDO
             $falha = $e;
             throw $e;
         }
+        // Mesmo relógio do PHP (America/Sao_Paulo): na Hostinger o MySQL pode estar em UTC, e os prazos usam NOW()
+        try {
+            $pdo->exec("SET time_zone = '" . date('P') . "'");
+        } catch (PDOException $e) {
+            error_log('Pedal Solidário – não foi possível acertar o fuso do banco: ' . $e->getMessage());
+        }
         esquema_atualizar($pdo);
+        inscricoes_expirar($pdo);
     }
     return $pdo;
+}
+
+/**
+ * Pendentes com prazo vencido viram "expirado" (liberam a vaga, o CPF e o cupom).
+ * Roda a cada conexão, então tudo o que lê o banco já enxerga as expiradas. Nunca lança.
+ */
+function inscricoes_expirar(PDO $pdo): int
+{
+    try {
+        return $pdo->exec("UPDATE inscricoes SET status = 'expirado'
+                           WHERE status = 'pendente' AND expira_em IS NOT NULL AND expira_em < NOW()");
+    } catch (PDOException $e) {
+        error_log('Pedal Solidário – expiração das inscrições: ' . $e->getMessage());
+        return 0;
+    }
 }
 
 /**
@@ -130,6 +152,42 @@ function esquema_atualizar(PDO $pdo): void
         if (!$pdo->query("SHOW COLUMNS FROM inscricoes LIKE 'email_pago_em'")->fetch()) {
             $pdo->exec("ALTER TABLE inscricoes ADD COLUMN email_pago_em DATETIME NULL AFTER pago_em,
                 ADD COLUMN email_pago_erro VARCHAR(255) NULL AFTER email_pago_em");
+        }
+        // Pagamento online (Mercado Pago): status "expirado", prazo, pagamento que quitou, alertas e e-mail de instruções
+        $col_status = $pdo->query("SHOW COLUMNS FROM inscricoes LIKE 'status'")->fetch();
+        if ($col_status && stripos((string) $col_status['Type'], 'expirado') === false) {
+            $pdo->exec("ALTER TABLE inscricoes MODIFY status ENUM('pendente','pago','cancelado','expirado') NOT NULL DEFAULT 'pendente'");
+        }
+        // Um CPF pode ter várias inscrições (expiradas/canceladas); "uma ativa por CPF" é conferido no código, sob a trava de vagas
+        if ($pdo->query("SHOW INDEX FROM inscricoes WHERE Key_name = 'cpf'")->fetch()) {
+            $pdo->exec('ALTER TABLE inscricoes DROP INDEX cpf, ADD INDEX idx_cpf (cpf)');
+        }
+        if (!$pdo->query("SHOW COLUMNS FROM inscricoes LIKE 'expira_em'")->fetch()) {
+            $pdo->exec("ALTER TABLE inscricoes
+                ADD COLUMN expira_em DATETIME NULL AFTER pago_em,
+                ADD COLUMN pagamento_mp_id VARCHAR(30) NULL AFTER expira_em,
+                ADD COLUMN pagamento_alerta VARCHAR(255) NULL AFTER pagamento_mp_id,
+                ADD COLUMN email_instr_em DATETIME NULL AFTER email_pago_erro,
+                ADD COLUMN email_instr_erro VARCHAR(255) NULL AFTER email_instr_em");
+        }
+        if (!$pdo->query("SHOW TABLES LIKE 'pagamentos'")->fetch()) {
+            $pdo->exec("CREATE TABLE pagamentos (
+                id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                inscricao_id INT UNSIGNED NOT NULL,
+                mp_id VARCHAR(30) NOT NULL UNIQUE,
+                metodo VARCHAR(20) NOT NULL,
+                parcelas TINYINT UNSIGNED NULL,
+                status VARCHAR(30) NOT NULL,
+                status_detalhe VARCHAR(60) NULL,
+                valor DECIMAL(8,2) NOT NULL,
+                pix_copia_cola TEXT NULL,
+                pix_qr_base64 MEDIUMTEXT NULL,
+                pix_expira_em DATETIME NULL,
+                consultado_em DATETIME NULL,
+                criado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                atualizado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_inscricao (inscricao_id)
+            ) ENGINE=InnoDB");
         }
     } catch (PDOException $e) {
         error_log('Pedal Solidário – atualização do esquema: ' . $e->getMessage());

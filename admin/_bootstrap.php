@@ -28,6 +28,7 @@ const STATUS_ROTULOS = [
     'pendente'  => 'Pendente',
     'pago'      => 'Pago',
     'cancelado' => 'Cancelado',
+    'expirado'  => 'Não paga (expirada)',
 ];
 
 /** Assinatura da senha guardada na sessão: se a senha mudar no banco, a sessão deixa de valer. */

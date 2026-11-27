@@ -2,7 +2,7 @@
 /**
  * Regras dos cupons de desconto.
  * O desconto vale somente para o valor da INSCRIÇÃO (nunca para a camiseta).
- * Um cupom conta como "usado" enquanto a inscrição não estiver cancelada.
+ * Um cupom conta como "usado" enquanto a inscrição estiver ativa (paga ou pendente; cancelada e expirada devolvem).
  */
 
 /** Padroniza o código: maiúsculas, 3 a 30 caracteres (A-Z, 0-9, hífen e sublinhado). Vazio = inválido. */
@@ -12,10 +12,10 @@ function cupom_normalizar(string $codigo): string
     return preg_match('/^[A-Z0-9_-]{3,30}$/', $codigo) ? $codigo : '';
 }
 
-/** Quantas inscrições (não canceladas) já usaram o cupom. */
+/** Quantas inscrições ativas (pagas ou pendentes) usam o cupom. */
 function cupom_usos(PDO $pdo, int $cupom_id): int
 {
-    $st = $pdo->prepare("SELECT COUNT(*) FROM inscricoes WHERE cupom_id = :id AND status <> 'cancelado'");
+    $st = $pdo->prepare("SELECT COUNT(*) FROM inscricoes WHERE cupom_id = :id AND status IN ('pendente', 'pago')");
     $st->execute([':id' => $cupom_id]);
     return (int) $st->fetchColumn();
 }

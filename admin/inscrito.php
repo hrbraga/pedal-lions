@@ -62,7 +62,7 @@ if ($erro_banco): ?>
         <?php if ($i['status'] !== 'pago'): ?>
             <?php campo_acao('pago', 'Confirmar pagamento', '', 'Confirmar o pagamento desta inscrição?', $i, $voltar_detalhe); ?>
         <?php endif; ?>
-        <?php if ($i['status'] === 'pago'): ?>
+        <?php if ($i['status'] === 'pago'): /* expirada não tem "Voltar para pendente": só confirmar (com vaga) ou excluir */ ?>
             <?php campo_acao('email_pago', empty($i['email_pago_em']) ? 'Enviar e-mail de confirmação' : 'Reenviar e-mail de confirmação', 'adm-btn--claro',
                 'Enviar o e-mail de confirmação para ' . $i['email'] . '?', $i, $voltar_detalhe); ?>
             <?php campo_acao('pendente', 'Voltar para pendente', 'adm-btn--claro', 'Desfazer a confirmação e voltar para pendente?', $i, $voltar_detalhe); ?>

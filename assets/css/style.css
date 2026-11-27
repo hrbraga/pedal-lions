@@ -737,6 +737,7 @@ dialog.modal p { margin: 0; color: var(--suave); }
 .selo--pendente { background: #FFF1C2; color: #6B4E00; }
 .selo--pago { background: #DDF3E4; color: var(--ok); }
 .selo--cancelado { background: #F6DAD7; color: var(--erro); }
+.selo--expirado { background: #E4E7EE; color: var(--suave); }
 .aviso ul { margin: .5rem 0 0; padding-left: 1.25rem; }
 
 /* Mapa incorporado (Strava etc.) */

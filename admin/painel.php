@@ -11,7 +11,7 @@ $pagina_atual = max(1, (int) ($_GET['p'] ?? 1));
 
 $linhas = [];
 $total_filtrado = 0;
-$resumo = ['pendente' => ['n' => 0, 'valor' => 0.0], 'pago' => ['n' => 0, 'valor' => 0.0], 'cancelado' => ['n' => 0, 'valor' => 0.0]];
+$resumo = ['pendente' => ['n' => 0, 'valor' => 0.0], 'pago' => ['n' => 0, 'valor' => 0.0], 'cancelado' => ['n' => 0, 'valor' => 0.0], 'expirado' => ['n' => 0, 'valor' => 0.0]];
 $por_categoria = [];
 $por_tamanho = [];
 $erro_banco = null;
@@ -23,11 +23,11 @@ try {
     foreach ($pdo->query('SELECT status, COUNT(*) AS n, COALESCE(SUM(valor_total),0) AS valor, COALESCE(SUM(valor_taxa),0) AS taxa FROM inscricoes GROUP BY status') as $r) {
         $resumo[$r['status']] = ['n' => (int) $r['n'], 'valor' => (float) $r['valor'], 'taxa' => (float) $r['taxa']];
     }
-    foreach ($pdo->query('SELECT categoria, status, COUNT(*) AS n FROM inscricoes WHERE status <> \'cancelado\' GROUP BY categoria, status') as $r) {
+    foreach ($pdo->query('SELECT categoria, status, COUNT(*) AS n FROM inscricoes WHERE status IN (\'pendente\', \'pago\') GROUP BY categoria, status') as $r) {
         $por_categoria[$r['categoria']][$r['status']] = (int) $r['n'];
     }
     // Camisetas por modelo × tamanho ('' = inscrição de antes dos modelos)
-    foreach ($pdo->query('SELECT COALESCE(camiseta_modelo, \'\') AS m, camiseta_tamanho AS t, status, COUNT(*) AS n FROM inscricoes WHERE camiseta_tamanho IS NOT NULL AND status <> \'cancelado\' GROUP BY m, camiseta_tamanho, status') as $r) {
+    foreach ($pdo->query('SELECT COALESCE(camiseta_modelo, \'\') AS m, camiseta_tamanho AS t, status, COUNT(*) AS n FROM inscricoes WHERE camiseta_tamanho IS NOT NULL AND status IN (\'pendente\', \'pago\') GROUP BY m, camiseta_tamanho, status') as $r) {
         $por_tamanho[$r['m']][$r['t']][$r['status']] = (int) $r['n'];
     }
 
@@ -93,9 +93,14 @@ require __DIR__ . '/_topo.php';
         <small>não entram nas contas</small>
     </div>
     <div class="adm-card">
+        <span>Não pagas (expiradas)</span>
+        <strong><?= (int) $resumo['expirado']['n'] ?></strong>
+        <small>prazo de pagamento vencido; vaga liberada</small>
+    </div>
+    <div class="adm-card">
         <span>Total de inscrições</span>
-        <strong><?= (int) ($resumo['pago']['n'] + $resumo['pendente']['n'] + $resumo['cancelado']['n']) ?></strong>
-        <small>incluindo canceladas</small>
+        <strong><?= (int) ($resumo['pago']['n'] + $resumo['pendente']['n'] + $resumo['cancelado']['n'] + $resumo['expirado']['n']) ?></strong>
+        <small>incluindo canceladas e expiradas</small>
     </div>
 </section>
 

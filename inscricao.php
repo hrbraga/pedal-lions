@@ -4,6 +4,7 @@ require_once __DIR__ . '/includes/funcoes.php';
 require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/cupons.php';
 require_once __DIR__ . '/includes/inscricoes.php';
+require_once __DIR__ . '/includes/pagamento.php';
 
 $ev         = evento();
 $fechamento = inscricoes_fechamento(); // null = abertas; 'encerradas', 'fechadas', 'em_breve' ou 'esgotadas'
@@ -141,19 +142,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             if (!$erros) {
-                $existe = $pdo->prepare('SELECT id FROM inscricoes WHERE cpf = :cpf LIMIT 1');
-                $existe->execute([':cpf' => $cpf]);
-                if ($existe->fetch()) {
-                    $erros[] = 'Já existe uma inscrição com este CPF. Se precisar de ajuda, fale com a organização.';
-                }
-            }
-
-            if (!$erros) {
-                // 2) Vagas: uma inscrição por vez reconta e grava, para nunca passar do limite.
-                //    A trava vem antes da transação, para a contagem enxergar tudo o que já foi gravado.
-                $trava_vagas = (int) $pdo->query("SELECT GET_LOCK('pedal_solidario_vagas', 10)")->fetchColumn() === 1;
+                // 2) Vagas e CPF: uma inscrição por vez reconta e grava, para nunca passar do limite nem gravar
+                //    duas ativas do mesmo CPF. A trava vem antes da transação, para enxergar tudo o que já foi gravado.
+                $trava_vagas = travar_vagas($pdo);
                 if (!$trava_vagas) {
                     $erros[] = 'Muitas inscrições ao mesmo tempo. Tente novamente em instantes.';
+                } elseif ($ativa = pagamento_cpf_ativo($pdo, $cpf)) {
+                    // Expiradas e canceladas não contam: quem deixou o prazo passar pode se inscrever de novo
+                    $erros[] = ($ativa['status'] === 'pendente' && !empty($ativa['expira_em']))
+                        ? 'Já existe uma inscrição com este CPF aguardando pagamento até ' . date('d/m \à\s H\hi', strtotime((string) $ativa['expira_em']))
+                          . '. Use o link enviado para o seu e-mail.'
+                        : 'Já existe uma inscrição com este CPF. Se precisar de ajuda, fale com a organização.';
                 } elseif ($fechamento = inscricoes_fechamento($pdo)) {
                     $erros[] = inscricoes_texto_fechamento($fechamento);
                 }

@@ -5,6 +5,7 @@
  */
 require __DIR__ . '/_bootstrap.php';
 require_once __DIR__ . '/../includes/email_pagamento.php';
+require_once __DIR__ . '/../includes/pagamento.php';
 admin_exigir('inscritos');
 
 $voltar = destino_seguro((string) ($_POST['voltar'] ?? ''));
@@ -24,7 +25,7 @@ $acao = post_txt('acao');
 
 try {
     $pdo = db();
-    $st = $pdo->prepare('SELECT id, nome, email, status, pago_em, email_pago_em FROM inscricoes WHERE id = :id');
+    $st = $pdo->prepare('SELECT id, nome, email, cpf, status, pago_em, email_pago_em FROM inscricoes WHERE id = :id');
     $st->execute([':id' => $id]);
     $insc = $st->fetch();
 
@@ -36,7 +37,21 @@ try {
 
     switch ($acao) {
         case 'pago':
+            // Expirada que pagou por fora: só volta se ainda houver vaga e o CPF não tiver outra inscrição ativa
+            $trava = false;
+            if ($insc['status'] === 'expirado') {
+                $trava = travar_vagas($pdo);
+                $motivo = !$trava ? 'Muitas operações ao mesmo tempo. Tente novamente em instantes.'
+                    : (!pagamento_tem_vaga($pdo, (int) (evento()['inscricoes_vagas'] ?? 0)) ? 'Não há vaga para confirmar esta inscrição.'
+                    : (pagamento_cpf_ativo($pdo, (string) $insc['cpf'], $id) ? 'Este CPF já tem outra inscrição ativa.' : null));
+                if ($motivo !== null) {
+                    liberar_trava_vagas($pdo, $trava);
+                    flash('erro', $motivo);
+                    break;
+                }
+            }
             $pdo->prepare("UPDATE inscricoes SET status = 'pago', pago_em = COALESCE(pago_em, NOW()) WHERE id = :id")->execute([':id' => $id]);
+            liberar_trava_vagas($pdo, $trava);
             // Avisa o atleta por e-mail uma vez só (reconfirmar depois de voltar a pendente não reenvia)
             if (!empty($insc['email_pago_em'])) {
                 flash('ok', 'Pagamento confirmado: ' . $insc['nome'] . '. O e-mail de confirmação já tinha sido enviado.');
@@ -64,7 +79,8 @@ try {
             break;
 
         case 'pendente':
-            $pdo->prepare("UPDATE inscricoes SET status = 'pendente', pago_em = NULL WHERE id = :id")->execute([':id' => $id]);
+            // Pendente feita à mão no painel não expira (expira_em = NULL)
+            $pdo->prepare("UPDATE inscricoes SET status = 'pendente', pago_em = NULL, expira_em = NULL WHERE id = :id")->execute([':id' => $id]);
             flash('ok', 'Inscrição de ' . $insc['nome'] . ' voltou para pendente.');
             break;
 

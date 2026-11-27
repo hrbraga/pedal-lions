@@ -181,8 +181,8 @@ $usos_lista = [];
 if ($pdo) {
     try {
         $cupons = $pdo->query("SELECT c.*,
-                (SELECT COUNT(*) FROM inscricoes i WHERE i.cupom_id = c.id AND i.status <> 'cancelado') AS usos,
-                (SELECT COALESCE(SUM(i.valor_desconto), 0) FROM inscricoes i WHERE i.cupom_id = c.id AND i.status <> 'cancelado') AS desconto_total,
+                (SELECT COUNT(*) FROM inscricoes i WHERE i.cupom_id = c.id AND i.status IN ('pendente', 'pago')) AS usos,
+                (SELECT COALESCE(SUM(i.valor_desconto), 0) FROM inscricoes i WHERE i.cupom_id = c.id AND i.status IN ('pendente', 'pago')) AS desconto_total,
                 (SELECT COUNT(*) FROM inscricoes i WHERE i.cupom_id = c.id) AS vinculos
             FROM cupons c ORDER BY c.criado_em DESC, c.id DESC")->fetchAll();
 

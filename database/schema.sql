@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS inscricoes (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     codigo CHAR(10) NOT NULL UNIQUE,
     nome VARCHAR(150) NOT NULL,
-    cpf CHAR(11) NOT NULL UNIQUE,
+    cpf CHAR(11) NOT NULL,                      -- uma inscrição ATIVA por CPF (conferido no código); expiradas/canceladas não contam
     nascimento DATE NOT NULL,
     sexo ENUM('M','F') NOT NULL,
     email VARCHAR(150) NOT NULL,
@@ -29,13 +29,19 @@ CREATE TABLE IF NOT EXISTS inscricoes (
     cupom_codigo VARCHAR(30) NULL,
     valor_taxa DECIMAL(8,2) NOT NULL DEFAULT 0,       -- taxa de administração (só sobre a inscrição)
     valor_total DECIMAL(8,2) NOT NULL,                -- inscrição + taxa - desconto + camiseta
-    status ENUM('pendente','pago','cancelado') NOT NULL DEFAULT 'pendente',
+    status ENUM('pendente','pago','cancelado','expirado') NOT NULL DEFAULT 'pendente',  -- expirado = não paga no prazo
     gateway_id VARCHAR(100) NULL,
     pago_em DATETIME NULL,
+    expira_em DATETIME NULL,                         -- prazo para pagar (pagamento online); NULL = não expira
+    pagamento_mp_id VARCHAR(30) NULL,                -- pagamento do Mercado Pago que quitou a inscrição
+    pagamento_alerta VARCHAR(255) NULL,              -- destaque no painel (ex.: "paga sem vaga — devolver o dinheiro")
     email_pago_em DATETIME NULL,                     -- quando saiu o e-mail de pagamento confirmado
     email_pago_erro VARCHAR(255) NULL,               -- motivo da última falha no envio
+    email_instr_em DATETIME NULL,                    -- quando saiu o e-mail de instruções de pagamento
+    email_instr_erro VARCHAR(255) NULL,
     criado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_status (status),
+    INDEX idx_cpf (cpf),
     INDEX idx_categoria (categoria),
     INDEX idx_cupom (cupom_id)
 ) ENGINE=InnoDB;
@@ -100,4 +106,23 @@ CREATE TABLE IF NOT EXISTS fin_lancamentos (
     alterado_em DATETIME NULL,
     INDEX idx_data (data),
     INDEX idx_categoria (categoria_id)
+) ENGINE=InnoDB;
+
+-- Pagamentos do Mercado Pago (uma linha por pagamento criado: Pix ou tentativa de cartão)
+CREATE TABLE IF NOT EXISTS pagamentos (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    inscricao_id INT UNSIGNED NOT NULL,
+    mp_id VARCHAR(30) NOT NULL UNIQUE,           -- id do pagamento no Mercado Pago
+    metodo VARCHAR(20) NOT NULL,                 -- pix ou a bandeira do cartão (visa, master…)
+    parcelas TINYINT UNSIGNED NULL,
+    status VARCHAR(30) NOT NULL,                 -- status do Mercado Pago (pending, approved, rejected…)
+    status_detalhe VARCHAR(60) NULL,
+    valor DECIMAL(8,2) NOT NULL,
+    pix_copia_cola TEXT NULL,
+    pix_qr_base64 MEDIUMTEXT NULL,
+    pix_expira_em DATETIME NULL,
+    consultado_em DATETIME NULL,                 -- última consulta à API feita pela página de pagamento
+    criado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    atualizado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_inscricao (inscricao_id)
 ) ENGINE=InnoDB;

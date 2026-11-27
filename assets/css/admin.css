@@ -104,6 +104,7 @@ code { background: #E8ECF6; padding: .1rem .35rem; border-radius: 4px; font-size
 .adm-selo--pendente { background: #FFF1C2; color: #6B4E00; }
 .adm-selo--pago { background: #DDF3E4; color: var(--ok); }
 .adm-selo--cancelado { background: #F6DAD7; color: var(--erro); }
+.adm-selo--expirado { background: #E4E7EE; color: var(--suave); }
 .adm-selo--alerta { background: #F6DAD7; color: var(--erro); font-size: .75rem; }
 
 /* Filtros */

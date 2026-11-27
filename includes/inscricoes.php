@@ -31,10 +31,10 @@ function inscricoes_motivo_fechamento(bool $abertas, string $prazo_iso, int $vag
     return null;
 }
 
-/** Inscrições que ocupam vaga: todas menos as canceladas (pagas e pendentes). */
+/** Inscrições que ocupam vaga: as ativas (pagas e pendentes dentro do prazo; canceladas e expiradas não). */
 function vagas_ocupadas(PDO $pdo): int
 {
-    return (int) $pdo->query("SELECT COUNT(*) FROM inscricoes WHERE status <> 'cancelado'")->fetchColumn();
+    return (int) $pdo->query("SELECT COUNT(*) FROM inscricoes WHERE status IN ('pendente', 'pago')")->fetchColumn();
 }
 
 /**
@@ -62,6 +62,12 @@ function inscricoes_fechamento(?PDO $pdo = null): ?string
         (string) ($ev['inscricoes_inicio'] ?? ''),
         date('Y-m-d H:i')
     );
+}
+
+/** Pega a trava de vagas: uma operação por vez reconta e grava (espera até 10 s). */
+function travar_vagas(PDO $pdo): bool
+{
+    return (int) $pdo->query("SELECT GET_LOCK('pedal_solidario_vagas', 10)")->fetchColumn() === 1;
 }
 
 /** Solta a trava de vagas (GET_LOCK) pega no envio da inscrição. Pode ser chamada mais de uma vez. */

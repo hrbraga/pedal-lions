@@ -23,7 +23,7 @@ $pagina = 'inscricao';
 $titulo = 'Inscrição recebida';
 require __DIR__ . '/includes/header.php';
 
-$rotulos = ['pendente' => 'Aguardando pagamento', 'pago' => 'Pagamento confirmado', 'cancelado' => 'Cancelada'];
+$rotulos = ['pendente' => 'Aguardando pagamento', 'pago' => 'Pagamento confirmado', 'cancelado' => 'Cancelada', 'expirado' => 'Não paga (prazo encerrado)'];
 ?>
 
 <div class="pagina-topo">
