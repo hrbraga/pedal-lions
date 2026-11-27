@@ -58,6 +58,7 @@ function email_pago_mensagem(array $insc, array $ev, string $site): array
 
     $regulamento = $site . '/regulamento.php';
     $programacao = $site . '/programacao.php';
+    $avatar      = $site . '/avatar.php';
     $grupo       = trim((string) ($ev['contato']['grupo_whatsapp'] ?? ''));
     $whatsapp    = trim((string) ($ev['contato']['whatsapp'] ?? ''));
     $nome_evento = (string) ($ev['nome'] ?? '2º Pedal Solidário');
@@ -80,6 +81,7 @@ function email_pago_mensagem(array $insc, array $ev, string $site): array
     if ($grupo !== '') {
         $t[] = 'Para entrar no grupo do WhatsApp dos participantes, acesse: ' . $grupo;
     }
+    $t[] = 'Para fazer seu avatar do evento, acesse: ' . $avatar;
     $t[] = 'Para ver a programação completa, acesse: ' . $programacao;
     $t[] = 'Para ler o regulamento, acesse: ' . $regulamento;
     if ($whatsapp !== '') {
@@ -99,10 +101,10 @@ function email_pago_mensagem(array $insc, array $ev, string $site): array
         return $h;
     };
     // Botão que funciona nos programas de e-mail (tabela com fundo colorido; o link ocupa o botão todo)
-    $botao = function (string $url, string $rotulo, string $cor): string {
+    $botao = function (string $url, string $rotulo, string $cor, string $tinta = '#FFFFFF'): string {
         return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 10px"><tr>'
             . '<td align="center" bgcolor="' . $cor . '" style="background:' . $cor . ';border-radius:6px">'
-            . '<a href="' . e($url) . '" target="_blank" style="display:block;padding:13px 16px;color:#FFFFFF;font-weight:bold;font-size:16px;text-decoration:none">'
+            . '<a href="' . e($url) . '" target="_blank" style="display:block;padding:13px 16px;color:' . $tinta . ';font-weight:bold;font-size:16px;text-decoration:none">'
             . e($rotulo) . '</a></td></tr></table>';
     };
 
@@ -123,6 +125,7 @@ function email_pago_mensagem(array $insc, array $ev, string $site): array
         . '<h2 style="font-size:17px;color:#0A1E4D;margin:0 0 8px;border-top:1px solid #D9DFEC;padding-top:16px">O evento</h2>'
         . '<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 16px">' . $linhas($evento) . '</table>'
         . ($grupo !== '' ? $botao($grupo, 'Clique aqui para entrar no grupo do WhatsApp', '#1B7A3E') : '')
+        . $botao($avatar, 'Clique aqui para fazer seu avatar', '#F5B800', '#0A1E4D')
         . $botao($programacao, 'Clique aqui para ver a programação completa', '#0A1E4D')
         . $botao($regulamento, 'Clique aqui para ler o regulamento', '#0A1E4D')
         . ($whatsapp !== '' ? '<p style="margin:16px 0 6px;color:#55627D">Dúvidas: WhatsApp ' . e($whatsapp) . '</p>' : '')
@@ -268,7 +271,7 @@ function email_teste_mensagem(array $ev, string $site): array
     ];
     $m = email_pago_mensagem($exemplo, $ev, $site);
     $aviso = 'Este é um e-mail de teste enviado pelo painel. Os dados da inscrição são de exemplo.';
-    $m['assunto'] = '[TESTE] ' . $m['assunto'];
+    $m['assunto'] = '[TESTE ' . date('H:i:s') . '] ' . $m['assunto']; // horário: o Gmail não junta os testes numa conversa
     $m['texto']   = $aviso . "\n\n" . $m['texto'];
     $m['html']    = preg_replace('/(<p style="margin:0 0 12px">Olá)/u',
         '<p style="margin:0 0 16px;padding:10px 12px;background:#FFF1C2;color:#6B4E00;border-radius:6px">' . e($aviso) . '</p>$1', $m['html'], 1);

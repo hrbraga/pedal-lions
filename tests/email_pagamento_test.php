@@ -50,10 +50,12 @@ foreach (['Olá, Atleta Maria da Silva!', 'PS12345678', 'Light', 'Manga longa, t
 // Links como botões "Clique aqui para…", cada um com o endereço certo
 foreach (['https://site.test/programacao.php' => 'Clique aqui para ver a programação completa',
           'https://site.test/regulamento.php' => 'Clique aqui para ler o regulamento',
-          'https://chat.whatsapp.com/ABC' => 'Clique aqui para entrar no grupo do WhatsApp'] as $url => $rotulo) {
+          'https://chat.whatsapp.com/ABC' => 'Clique aqui para entrar no grupo do WhatsApp',
+          'https://site.test/avatar.php' => 'Clique aqui para fazer seu avatar'] as $url => $rotulo) {
     confere("botão: $rotulo", (bool) preg_match('#<a href="' . preg_quote($url, '#') . '"[^>]*>' . preg_quote(htmlspecialchars($rotulo, ENT_QUOTES, 'UTF-8'), '#') . '</a>#u', $m['html']), true);
 }
 contem('sem grupo, sem botão do grupo', email_pago_mensagem($insc, ['contato' => ['grupo_whatsapp' => ''] + $ev['contato']] + $ev, $site)['html'], 'Clique aqui para entrar no grupo', false);
+contem('texto: link do avatar', $m['texto'], 'Para fazer seu avatar do evento, acesse: https://site.test/avatar.php');
 contem('texto só com largadas', $m['texto'], 'Retirada de kits', false);
 
 $sem = email_pago_mensagem(['camiseta_tamanho' => null, 'camiseta_modelo' => null] + $insc, $ev, $site);
@@ -90,7 +92,7 @@ confere('motivo curto: ponto em endereço não corta', email_motivo_curto('Ender
 
 // E-mail de teste do painel: mesma mensagem, dados de exemplo e [TESTE] no assunto
 $tt = email_teste_mensagem($ev, $site);
-confere('teste: assunto', $tt['assunto'], '[TESTE] Pagamento confirmado – 2º Pedal Solidário');
+confere('teste: assunto com horário (o Gmail não junta os testes)', (bool) preg_match('/^\[TESTE \d{2}:\d{2}:\d{2}\] Pagamento confirmado – 2º Pedal Solidário$/u', $tt['assunto']), true);
 contem('teste: saudação de exemplo', $tt['texto'], 'Olá, Atleta Fulano de Tal!');
 confere('teste: leva o logo', isset($tt['imagens']['logo-lions']), true);
 contem('teste: código de exemplo', $tt['texto'], 'TESTE00001');
