@@ -18,6 +18,21 @@ function mp_falso_subir(int $porta)
     return $proc;
 }
 
+/** Sobe o próprio site (php -S com a raiz do projeto) para chamar os endpoints nos testes. */
+function mp_falso_subir_site(int $porta, string $raiz)
+{
+    $log = sys_get_temp_dir() . '/site_teste_' . $porta . '.log';
+    $proc = proc_open([PHP_BINARY, '-S', '127.0.0.1:' . $porta, '-t', $raiz],
+                      [['pipe', 'r'], ['file', $log, 'a'], ['file', $log, 'a']], $pipes);
+    for ($k = 0; $k < 50 && !($s = @fsockopen('127.0.0.1', $porta, $en, $es, 0.2)); $k++) {
+        usleep(100000);
+    }
+    if (!empty($s)) {
+        fclose($s);
+    }
+    return $proc;
+}
+
 function mp_falso_parar($proc, int $porta): void
 {
     // No Windows o proc_terminate não derruba o php -S filho: encerra pela porta

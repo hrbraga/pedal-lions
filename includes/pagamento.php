@@ -1,11 +1,13 @@
 <?php
 /**
- * Regras do pagamento online sobre o banco: prazo, inscrição ativa por CPF e vagas.
- * "Ativa" = paga ou pendente dentro do prazo (canceladas e expiradas não ocupam vaga nem bloqueiam o CPF).
+ * Regras do pagamento online sobre o banco: prazo, inscrição ativa por CPF, vagas e aplicar os pagamentos
+ * do Mercado Pago. "Ativa" = paga ou pendente dentro do prazo (canceladas e expiradas não ocupam vaga nem
+ * bloqueiam o CPF).
  */
 require_once __DIR__ . '/funcoes.php';
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/inscricoes.php';
+require_once __DIR__ . '/mercadopago.php';
 
 /** Horas para pagar depois de se inscrever. Passou, a inscrição expira e libera a vaga. */
 const PAGAMENTO_PRAZO_HORAS = 6;
@@ -24,4 +26,158 @@ function pagamento_cpf_ativo(PDO $pdo, string $cpf, int $exceto_id = 0): ?array
 function pagamento_tem_vaga(PDO $pdo, int $vagas): bool
 {
     return $vagas <= 0 || vagas_ocupadas($pdo) < $vagas;
+}
+
+/** Guarda (ou atualiza) um pagamento do Mercado Pago na tabela pagamentos. */
+function pagamento_registrar(PDO $pdo, int $inscricao_id, array $mp): void
+{
+    $pix    = ($mp['payment_method_id'] ?? '') === 'pix';
+    $dados  = (array) ($mp['point_of_interaction']['transaction_data'] ?? []);
+    $expira = !empty($mp['date_of_expiration']) ? date('Y-m-d H:i:s', strtotime((string) $mp['date_of_expiration'])) : null;
+    $st = $pdo->prepare('INSERT INTO pagamentos (inscricao_id, mp_id, metodo, parcelas, status, status_detalhe, valor, pix_copia_cola, pix_qr_base64, pix_expira_em)
+                         VALUES (:i, :mp, :metodo, :parcelas, :status, :detalhe, :valor, :copia, :qr, :expira)
+                         ON DUPLICATE KEY UPDATE status = VALUES(status), status_detalhe = VALUES(status_detalhe), valor = VALUES(valor),
+                             pix_copia_cola = COALESCE(VALUES(pix_copia_cola), pix_copia_cola),
+                             pix_qr_base64 = COALESCE(VALUES(pix_qr_base64), pix_qr_base64),
+                             pix_expira_em = COALESCE(VALUES(pix_expira_em), pix_expira_em)');
+    $st->execute([
+        ':i'        => $inscricao_id,
+        ':mp'       => (string) $mp['id'],
+        ':metodo'   => mb_substr((string) ($mp['payment_method_id'] ?? '?'), 0, 20),
+        ':parcelas' => $pix ? null : (int) ($mp['installments'] ?? 1),
+        ':status'   => mb_substr((string) ($mp['status'] ?? '?'), 0, 30),
+        ':detalhe'  => isset($mp['status_detail']) ? mb_substr((string) $mp['status_detail'], 0, 60) : null,
+        ':valor'    => round((float) ($mp['transaction_amount'] ?? 0), 2),
+        ':copia'    => $pix ? ($dados['qr_code'] ?? null) : null,
+        ':qr'       => $pix ? ($dados['qr_code_base64'] ?? null) : null,
+        ':expira'   => $pix ? $expira : null,
+    ]);
+}
+
+/** Acrescenta um destaque para o painel (" · " entre eles), sem repetir o mesmo texto. */
+function pagamento_alertar(PDO $pdo, int $id, string $texto): void
+{
+    $st = $pdo->prepare('SELECT pagamento_alerta FROM inscricoes WHERE id = :id');
+    $st->execute([':id' => $id]);
+    $atual = (string) $st->fetchColumn();
+    if ($atual !== '' && str_contains($atual, $texto)) {
+        return;
+    }
+    $novo = mb_substr($atual === '' ? $texto : $atual . ' · ' . $texto, 0, 255);
+    $pdo->prepare('UPDATE inscricoes SET pagamento_alerta = :a WHERE id = :id')->execute([':a' => $novo, ':id' => $id]);
+}
+
+/**
+ * Aplica um pagamento como a API do Mercado Pago o descreve (nunca o corpo do aviso: quem chama já buscou na API).
+ * Devolve: pago, pago_atrasado, sem_vaga, duplicidade, repetido, estornado, valor_divergente, desconhecido ou atualizado.
+ * $vagas = limite de inscrições (0 = sem limite). Lança só se o banco falhar ou a trava de vagas não vier
+ * (o aviso responde 500 e o Mercado Pago tenta de novo).
+ */
+function pagamento_processar(PDO $pdo, array $mp, int $vagas, string $site, ?array $cfg_email): string
+{
+    require_once __DIR__ . '/email_pagamento.php';
+    $mp_id = (string) ($mp['id'] ?? '');
+    $st = $pdo->prepare('SELECT id, valor_total, pagamento_mp_id FROM inscricoes WHERE codigo = :c');
+    $st->execute([':c' => (string) ($mp['external_reference'] ?? '')]);
+    $insc = $st->fetch();
+    if (!$insc || $mp_id === '') {
+        error_log('Pedal Solidário – pagamento ' . $mp_id . ' do Mercado Pago com referência desconhecida: ' . ($mp['external_reference'] ?? ''));
+        return 'desconhecido';
+    }
+    $id = (int) $insc['id'];
+    pagamento_registrar($pdo, $id, $mp);
+    $status = (string) ($mp['status'] ?? '');
+
+    if (in_array($status, ['refunded', 'charged_back'], true)) {
+        if ((string) $insc['pagamento_mp_id'] !== $mp_id) {
+            return 'atualizado';
+        }
+        pagamento_alertar($pdo, $id, 'estornado no Mercado Pago');
+        return 'estornado';
+    }
+    if ($status !== 'approved') {
+        return 'atualizado';
+    }
+    if (abs(round((float) ($mp['transaction_amount'] ?? 0), 2) - (float) $insc['valor_total']) > 0.004) {
+        error_log('Pedal Solidário – pagamento ' . $mp_id . ' com valor ' . ($mp['transaction_amount'] ?? '?') . ' diferente do total ' . $insc['valor_total']);
+        return 'valor_divergente';
+    }
+
+    // Uma confirmação por vez: a trava de vagas (a expirada pode voltar a ocupar vaga) e a linha travada
+    $trava = travar_vagas($pdo);
+    if (!$trava) {
+        throw new RuntimeException('trava de vagas indisponível');
+    }
+    $resultado = 'repetido';
+    $atual = [];
+    try {
+        $pdo->beginTransaction();
+        $st = $pdo->prepare('SELECT status, cpf, pagamento_mp_id, email_pago_em FROM inscricoes WHERE id = :id FOR UPDATE');
+        $st->execute([':id' => $id]);
+        $atual = $st->fetch();
+        $quitar = $pdo->prepare("UPDATE inscricoes SET status = 'pago', pago_em = NOW(), pagamento_mp_id = :mp WHERE id = :id");
+        if ((string) $atual['pagamento_mp_id'] === $mp_id) {
+            $resultado = 'repetido';
+        } elseif ($atual['status'] === 'pendente') {
+            $quitar->execute([':mp' => $mp_id, ':id' => $id]);
+            $resultado = 'pago';
+        } elseif ($atual['status'] === 'expirado') {
+            // Vagas contadas sem esta inscrição; o dinheiro entrou, então ela fica paga de qualquer jeito
+            $cabe = pagamento_tem_vaga($pdo, $vagas) && !pagamento_cpf_ativo($pdo, (string) $atual['cpf'], $id);
+            $quitar->execute([':mp' => $mp_id, ':id' => $id]);
+            if ($cabe) {
+                $resultado = 'pago_atrasado';
+            } else {
+                pagamento_alertar($pdo, $id, 'paga sem vaga — devolver o dinheiro');
+                $resultado = 'sem_vaga';
+            }
+        } else {
+            pagamento_alertar($pdo, $id, 'pagamento em duplicidade — devolver o dinheiro (Mercado Pago ' . $mp_id . ')');
+            $resultado = 'duplicidade';
+        }
+        $pdo->commit();
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        throw $e;
+    } finally {
+        liberar_trava_vagas($pdo, $trava);
+    }
+
+    if (in_array($resultado, ['pago', 'pago_atrasado'], true) && empty($atual['email_pago_em'])) {
+        email_pago_enviar($pdo, $id, $site, $cfg_email); // falha fica registrada na inscrição; o pagamento continua confirmado
+    }
+    return $resultado;
+}
+
+/**
+ * A página de pagamento pergunta o status a cada poucos segundos; se o aviso do Mercado Pago ainda não chegou,
+ * consulta a API (no máximo uma vez a cada 10 s por inscrição) e aplica o resultado.
+ */
+function pagamento_consultar(PDO $pdo, array $cfg_mp, array $insc, int $vagas, string $site, ?array $cfg_email): void
+{
+    if (($insc['status'] ?? '') !== 'pendente') {
+        return;
+    }
+    $st = $pdo->prepare("SELECT mp_id FROM pagamentos WHERE inscricao_id = :id AND status IN ('pending', 'in_process')
+                         ORDER BY id DESC LIMIT 1");
+    $st->execute([':id' => (int) $insc['id']]);
+    $mp_id = $st->fetchColumn();
+    if ($mp_id === false) {
+        return;
+    }
+    // Marca a consulta antes de chamar a API: se outra aba perguntou há menos de 10 s, não faz nada
+    $marca = $pdo->prepare('UPDATE pagamentos SET consultado_em = NOW()
+                            WHERE mp_id = :mp AND (consultado_em IS NULL OR consultado_em < NOW() - INTERVAL 10 SECOND)');
+    $marca->execute([':mp' => $mp_id]);
+    if ($marca->rowCount() === 0) {
+        return;
+    }
+    $r = mp_buscar_pagamento($cfg_mp, (string) $mp_id);
+    if ($r['http'] === 200 && is_array($r['dados'])) {
+        pagamento_processar($pdo, $r['dados'], $vagas, $site, $cfg_email);
+    } else {
+        error_log('Pedal Solidário – consulta do pagamento ' . $mp_id . ': ' . ($r['erro'] ?? '?'));
+    }
 }
