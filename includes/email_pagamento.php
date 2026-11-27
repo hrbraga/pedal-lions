@@ -130,3 +130,94 @@ function email_site_base(array $server): string
     $pasta  = preg_replace('#/admin$#', '', rtrim($pasta, '/'));
     return ($https ? 'https://' : 'http://') . ($server['HTTP_HOST'] ?? 'localhost') . $pasta;
 }
+
+/* ---------- Envio pela caixa do domínio (SMTP) ---------- */
+
+require_once __DIR__ . '/vendor/PHPMailer/Exception.php';
+require_once __DIR__ . '/vendor/PHPMailer/PHPMailer.php';
+require_once __DIR__ . '/vendor/PHPMailer/SMTP.php';
+
+/**
+ * Configuração do e-mail (config/email.php, fora do git; modelo em config/email.exemplo.php).
+ * null = arquivo ausente ou sem host/usuário.
+ */
+function email_config(?string $arquivo = null): ?array
+{
+    $arquivo = $arquivo ?? __DIR__ . '/../config/email.php';
+    if (!is_file($arquivo)) {
+        return null;
+    }
+    $cfg = include $arquivo;
+    if (!is_array($cfg) || trim((string) ($cfg['host'] ?? '')) === '' || trim((string) ($cfg['usuario'] ?? '')) === '') {
+        return null;
+    }
+    return $cfg + ['porta' => 465, 'seguranca' => 'ssl', 'senha' => '', 'nome' => 'Lions Clube de Cornélio Procópio'];
+}
+
+/**
+ * Envia a mensagem (['assunto','texto','html']). null = enviado; senão o motivo (até 255 caracteres).
+ * Nunca lança exceção.
+ */
+function email_enviar(?array $cfg, string $para, string $nome_para, array $msg): ?string
+{
+    if ($cfg === null) {
+        return 'e-mail não configurado';
+    }
+    $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
+    try {
+        $mail->setLanguage('pt_br', __DIR__ . '/vendor/PHPMailer/language/');
+        $mail->CharSet = \PHPMailer\PHPMailer\PHPMailer::CHARSET_UTF8;
+        $mail->isSMTP();
+        $mail->Host     = (string) $cfg['host'];
+        $mail->Port     = (int) $cfg['porta'];
+        $mail->SMTPAuth = true;
+        $mail->Username = (string) $cfg['usuario'];
+        $mail->Password = (string) $cfg['senha'];
+        $seg = strtolower((string) $cfg['seguranca']);
+        if ($seg === 'ssl') {
+            $mail->SMTPSecure = \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_SMTPS;
+        } elseif ($seg === 'tls') {
+            $mail->SMTPSecure = \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
+        } else {
+            $mail->SMTPSecure = '';
+            $mail->SMTPAutoTLS = false;
+        }
+        $mail->Timeout = 15;
+        $mail->setFrom((string) $cfg['usuario'], (string) $cfg['nome']);
+        $mail->addReplyTo((string) $cfg['usuario'], (string) $cfg['nome']);
+        $mail->addAddress($para, $nome_para);
+        $mail->isHTML(true);
+        $mail->Subject = (string) $msg['assunto'];
+        $mail->Body    = (string) $msg['html'];
+        $mail->AltBody = (string) $msg['texto'];
+        $mail->send();
+        return null;
+    } catch (\Throwable $e) {
+        $motivo = trim($mail->ErrorInfo !== '' ? $mail->ErrorInfo : $e->getMessage());
+        return mb_substr($motivo !== '' ? $motivo : 'falha no envio', 0, 255);
+    }
+}
+
+/**
+ * Envia o e-mail de pagamento confirmado de uma inscrição e registra o resultado
+ * (email_pago_em quando sai; email_pago_erro com o motivo quando falha). null = enviado.
+ */
+function email_pago_enviar(PDO $pdo, int $id, string $site, ?array $cfg): ?string
+{
+    $st = $pdo->prepare('SELECT * FROM inscricoes WHERE id = :id');
+    $st->execute([':id' => $id]);
+    $insc = $st->fetch();
+    if (!$insc) {
+        return 'inscrição não encontrada';
+    }
+    if ($insc['status'] !== 'pago') {
+        return 'inscrição não está paga';
+    }
+    $erro = email_enviar($cfg, (string) $insc['email'], (string) $insc['nome'], email_pago_mensagem($insc, evento(), $site));
+    if ($erro === null) {
+        $pdo->prepare('UPDATE inscricoes SET email_pago_em = NOW(), email_pago_erro = NULL WHERE id = :id')->execute([':id' => $id]);
+    } else {
+        $pdo->prepare('UPDATE inscricoes SET email_pago_erro = :erro WHERE id = :id')->execute([':erro' => $erro, ':id' => $id]);
+    }
+    return $erro;
+}

@@ -54,10 +54,12 @@ entre as linhas `<<<'HTML'` e `HTML,`.
    mostra e cadastre no GitHub em Settings → Deploy keys (só leitura). Para atualizar: botão **Implantar** (ou ative a implantação automática).
 4. **Conexão:** Gerenciador de Arquivos → `public_html/config/` → crie `banco.php` copiando `banco.exemplo.php` e preencha
    com os dados do passo 2 (`debug` false). Como ele não está no git, as atualizações não o apagam.
+   **E-mail:** crie também `email.php` copiando `email.exemplo.php` e coloque a senha da caixa (hPanel → E-mails).
+   Sem ele, o site não envia o aviso de pagamento confirmado (o painel mostra "e-mail não configurado").
 5. **HTTPS:** hPanel → Segurança → SSL → instale o certificado grátis e ative "Forçar HTTPS".
 6. **Primeiro administrador:** abra `https://SEU-DOMINIO/admin/` → cadastre usuário e senha (a tela se desativa depois).
 7. **Inscrições:** começam fechadas ("As inscrições ainda não estão abertas."). Abra no painel em Dados do Evento → Inscrições.
-8. **Conferir a proteção:** `https://SEU-DOMINIO/.git/config`, `/database/schema.sql` e `/config/banco.php` devem dar
+8. **Conferir a proteção:** `https://SEU-DOMINIO/.git/config`, `/database/schema.sql`, `/config/banco.php` e `/config/email.php` devem dar
    "não encontrado" (404). O `.htaccess` da raiz cuida disso; o de `uploads/` só deixa abrir imagens.
 9. **Logos enviados pelo painel** ficam em `uploads/patrocinadores/` (fora do git): a pasta precisa existir com permissão de
    escrita (o site a cria sozinho) e deve ser mantida ao mudar de hospedagem. Depois de enviar um logo, abra-o no navegador para conferir.

@@ -126,6 +126,11 @@ function esquema_atualizar(PDO $pdo): void
         if (!$pdo->query("SHOW COLUMNS FROM inscricoes LIKE 'valor_taxa'")->fetch()) {
             $pdo->exec("ALTER TABLE inscricoes ADD COLUMN valor_taxa DECIMAL(8,2) NOT NULL DEFAULT 0");
         }
+        // E-mail de pagamento confirmado: quando saiu e o motivo da última falha
+        if (!$pdo->query("SHOW COLUMNS FROM inscricoes LIKE 'email_pago_em'")->fetch()) {
+            $pdo->exec("ALTER TABLE inscricoes ADD COLUMN email_pago_em DATETIME NULL AFTER pago_em,
+                ADD COLUMN email_pago_erro VARCHAR(255) NULL AFTER email_pago_em");
+        }
     } catch (PDOException $e) {
         error_log('Pedal Solidário – atualização do esquema: ' . $e->getMessage());
     }

@@ -32,6 +32,8 @@ CREATE TABLE IF NOT EXISTS inscricoes (
     status ENUM('pendente','pago','cancelado') NOT NULL DEFAULT 'pendente',
     gateway_id VARCHAR(100) NULL,
     pago_em DATETIME NULL,
+    email_pago_em DATETIME NULL,                     -- quando saiu o e-mail de pagamento confirmado
+    email_pago_erro VARCHAR(255) NULL,               -- motivo da última falha no envio
     criado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_status (status),
     INDEX idx_categoria (categoria),
