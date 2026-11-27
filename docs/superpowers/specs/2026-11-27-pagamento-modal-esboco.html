@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Esboço – modal de pagamento</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root { --azul:#0A1E4D; --azul-2:#12307A; --ouro:#F5B800; --ouro-claro:#FFE08A; --papel:#F3F5FA; --tinta:#142038; --suave:#55627D; --linha:#D9DFEC; --ok:#1B7A3E; --erro:#B3261E; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:'Barlow',system-ui,sans-serif; color:var(--tinta); background:#e9ecf3; }
+  header.guia { padding:24px 32px 8px; max-width:1500px; margin:0 auto; }
+  header.guia h1 { font-family:'Barlow Condensed',sans-serif; font-size:2rem; margin:0 0 4px; color:var(--azul); }
+  header.guia p { margin:0; color:var(--suave); }
+  .telas { display:grid; grid-template-columns:repeat(auto-fit,minmax(400px,1fr)); gap:28px; padding:20px 32px 48px; max-width:1500px; margin:0 auto; }
+  .tela h2 { font-family:'Barlow Condensed',sans-serif; font-size:1.25rem; margin:0 0 10px; color:var(--azul); }
+  .tela .nota { font-size:.9rem; color:var(--suave); margin:10px 2px 0; line-height:1.4; }
+  /* fundo da página, escurecido */
+  .palco { position:relative; border-radius:10px; overflow:hidden; background:var(--papel); min-height:640px; box-shadow:0 2px 10px rgba(10,30,77,.15); }
+  .fundo { padding:0; filter:blur(1px); }
+  .fundo .topo { background:var(--azul); color:#fff; padding:28px 24px; font-family:'Barlow Condensed',sans-serif; font-size:1.6rem; font-weight:700; }
+  .fundo .bloco { margin:18px 24px; height:16px; background:#d6dbe7; border-radius:4px; }
+  .fundo .bloco.curto { width:60%; }
+  .veu { position:absolute; inset:0; background:rgba(10,30,77,.55); display:flex; align-items:center; justify-content:center; padding:18px; }
+  /* modal */
+  .modal { background:#fff; width:100%; max-width:400px; border-radius:12px; box-shadow:0 18px 50px rgba(0,0,0,.35); overflow:hidden; }
+  .modal__topo { background:var(--azul); color:#fff; padding:14px 18px; display:flex; align-items:center; gap:12px; }
+  .modal__topo img { width:34px; height:32px; }
+  .modal__topo .t { flex:1; }
+  .modal__topo strong { display:block; font-family:'Barlow Condensed',sans-serif; font-size:1.25rem; letter-spacing:.3px; }
+  .modal__topo small { opacity:.8; }
+  .fechar { background:none; border:0; color:#fff; font-size:1.5rem; line-height:1; cursor:pointer; opacity:.8; }
+  .resumo { display:flex; justify-content:space-between; align-items:baseline; padding:12px 18px; background:var(--papel); border-bottom:1px solid var(--linha); font-size:.9rem; color:var(--suave); }
+  .resumo b { font-family:'Barlow Condensed',sans-serif; font-size:1.6rem; color:var(--azul); }
+  .abas { display:flex; border-bottom:1px solid var(--linha); }
+  .aba { flex:1; text-align:center; padding:11px 0; font-weight:600; color:var(--suave); border-bottom:3px solid transparent; cursor:pointer; }
+  .aba.ativa { color:var(--azul); border-bottom-color:var(--ouro); }
+  .corpo { padding:16px 18px 18px; }
+  .qr { display:block; margin:0 auto 10px; width:176px; height:176px; padding:8px; border:1px solid var(--linha); border-radius:8px; background:#fff; }
+  .prazo { text-align:center; font-size:.9rem; margin-bottom:12px; }
+  .prazo b { color:var(--azul); }
+  .copia { display:flex; gap:6px; }
+  .copia input { flex:1; min-width:0; font:inherit; font-size:.8rem; padding:9px 10px; border:1px solid var(--linha); border-radius:6px; color:var(--suave); background:var(--papel); }
+  .btn { display:inline-block; font:inherit; font-weight:700; border:0; border-radius:6px; padding:10px 14px; cursor:pointer; }
+  .btn--ouro { background:var(--ouro); color:var(--azul); }
+  .btn--azul { background:var(--azul); color:#fff; }
+  .btn--bloco { display:block; width:100%; text-align:center; padding:12px; font-size:1rem; }
+  .passos { margin:12px 0 0; padding-left:18px; font-size:.85rem; color:var(--suave); line-height:1.45; }
+  .esperando { display:flex; align-items:center; gap:8px; justify-content:center; margin-top:12px; font-size:.85rem; color:var(--suave); }
+  .pulso { width:9px; height:9px; border-radius:50%; background:var(--ouro); animation:p 1.2s infinite; }
+  @keyframes p { 50% { opacity:.25; } }
+  /* cartão (formulário do Mercado Pago, só ilustrativo) */
+  .mp { border:1px dashed #9fb0d0; border-radius:8px; padding:12px; background:#fbfcff; }
+  .mp .rot { font-size:.75rem; color:#7a879f; margin:0 0 8px; }
+  .campo { font-size:.8rem; color:var(--suave); margin-bottom:8px; }
+  .campo div { margin-top:3px; height:36px; border:1px solid var(--linha); border-radius:6px; background:#fff; padding:8px 10px; color:#9aa5bb; font-size:.9rem; }
+  .duas { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .seguro { text-align:center; font-size:.78rem; color:var(--suave); margin-top:10px; }
+  /* confirmado */
+  .ok { text-align:center; padding:26px 22px 22px; }
+  .ok .circ { width:68px; height:68px; border-radius:50%; background:#E3F2E8; display:flex; align-items:center; justify-content:center; margin:0 auto 12px; }
+  .ok h3 { font-family:'Barlow Condensed',sans-serif; font-size:1.7rem; color:var(--ok); margin:0 0 6px; }
+  .ok p { margin:0 0 6px; color:var(--suave); font-size:.95rem; line-height:1.4; }
+  .ok .cod { display:inline-block; margin:8px 0 14px; padding:6px 12px; border-radius:6px; background:var(--papel); font-weight:700; letter-spacing:1px; color:var(--azul); }
+</style>
+</head>
+<body>
+<header class="guia">
+  <h1>Modal de pagamento – esboço</h1>
+  <p>Abre sozinho logo depois que o atleta conclui a inscrição, por cima da página "Inscrição recebida". Cores e fontes do site. Três momentos:</p>
+</header>
+
+<div class="telas">
+
+  <!-- 1. PIX -->
+  <div class="tela">
+    <h2>1 · Pix (aba aberta primeiro)</h2>
+    <div class="palco">
+      <div class="fundo"><div class="topo">Inscrição recebida</div><div class="bloco"></div><div class="bloco curto"></div><div class="bloco"></div><div class="bloco curto"></div></div>
+      <div class="veu">
+        <div class="modal">
+          <div class="modal__topo">
+            <svg width="34" height="32" viewBox="0 0 34 32"><circle cx="17" cy="16" r="15" fill="#F5B800"/><text x="17" y="21" text-anchor="middle" font-family="Barlow Condensed" font-weight="800" font-size="13" fill="#0A1E4D">L</text></svg>
+            <div class="t"><strong>Pagamento da inscrição</strong><small>Inscrição 7F3A9C21B0 · Maria Silva</small></div>
+            <button class="fechar" title="Fechar">×</button>
+          </div>
+          <div class="resumo"><span>Total a pagar</span><b>R$ 92,70</b></div>
+          <div class="abas"><div class="aba ativa">Pix</div><div class="aba">Cartão de crédito</div></div>
+          <div class="corpo">
+            <svg class="qr" id="qr" viewBox="0 0 29 29" shape-rendering="crispEdges"></svg>
+            <div class="prazo">Pague até <b>28/11 às 14h30</b> · faltam <b>23h 58min</b></div>
+            <div class="copia"><input readonly value="00020126580014br.gov.bcb.pix0136a1b2c3d4-…"><button class="btn btn--ouro">Copiar</button></div>
+            <ol class="passos"><li>Abra o app do seu banco e escolha Pix.</li><li>Leia o QR-Code ou cole o código.</li><li>Pronto: esta tela confirma sozinha.</li></ol>
+            <div class="esperando"><span class="pulso"></span>Aguardando o pagamento…</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="nota">O mesmo QR-Code e o código também vão para o e-mail do atleta. Se ele fechar o modal, a página mostra o botão "Pagar agora" para reabrir.</p>
+  </div>
+
+  <!-- 2. CARTÃO -->
+  <div class="tela">
+    <h2>2 · Cartão de crédito</h2>
+    <div class="palco">
+      <div class="fundo"><div class="topo">Inscrição recebida</div><div class="bloco"></div><div class="bloco curto"></div><div class="bloco"></div><div class="bloco curto"></div></div>
+      <div class="veu">
+        <div class="modal">
+          <div class="modal__topo">
+            <svg width="34" height="32" viewBox="0 0 34 32"><circle cx="17" cy="16" r="15" fill="#F5B800"/><text x="17" y="21" text-anchor="middle" font-family="Barlow Condensed" font-weight="800" font-size="13" fill="#0A1E4D">L</text></svg>
+            <div class="t"><strong>Pagamento da inscrição</strong><small>Inscrição 7F3A9C21B0 · Maria Silva</small></div>
+            <button class="fechar" title="Fechar">×</button>
+          </div>
+          <div class="resumo"><span>Total a pagar</span><b>R$ 92,70</b></div>
+          <div class="abas"><div class="aba">Pix</div><div class="aba ativa">Cartão de crédito</div></div>
+          <div class="corpo">
+            <div class="mp">
+              <p class="rot">Formulário seguro do Mercado Pago (aparência aproximada)</p>
+              <div class="campo">Número do cartão<div>1234 1234 1234 1234</div></div>
+              <div class="duas"><div class="campo">Validade<div>MM/AA</div></div><div class="campo">Código de segurança<div>123</div></div></div>
+              <div class="campo">Nome como está no cartão<div>MARIA SILVA</div></div>
+              <div class="duas"><div class="campo">CPF do titular<div>000.000.000-00</div></div><div class="campo">Parcelas<div>1x de R$ 92,70</div></div></div>
+            </div>
+            <button class="btn btn--azul btn--bloco" style="margin-top:12px">Pagar R$ 92,70</button>
+            <div class="seguro">🔒 Os dados do cartão vão direto para o Mercado Pago.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="nota">Aprovado ou recusado na hora. Se recusar, a mensagem aparece aqui mesmo e dá para tentar outro cartão ou voltar para o Pix.</p>
+  </div>
+
+  <!-- 3. CONFIRMADO -->
+  <div class="tela">
+    <h2>3 · Pagamento confirmado</h2>
+    <div class="palco">
+      <div class="fundo"><div class="topo">Inscrição recebida</div><div class="bloco"></div><div class="bloco curto"></div><div class="bloco"></div><div class="bloco curto"></div></div>
+      <div class="veu">
+        <div class="modal">
+          <div class="ok">
+            <div class="circ"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#1B7A3E" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg></div>
+            <h3>Pagamento confirmado!</h3>
+            <p>Sua inscrição no <b>2º Pedal Solidário</b> está garantida.</p>
+            <span class="cod">7F3A9C21B0</span>
+            <p>Enviamos a confirmação para <b>m***@gmail.com</b>, com o link do grupo do WhatsApp.</p>
+            <button class="btn btn--ouro btn--bloco" style="margin-top:14px">Faça seu avatar!</button>
+            <button class="btn btn--bloco" style="background:none;color:var(--suave);margin-top:4px">Fechar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="nota">Aparece sozinho assim que o Mercado Pago aprova (no Pix, alguns segundos depois de pagar no app).</p>
+  </div>
+
+</div>
+
+<script>
+// QR-Code ilustrativo (não é um código de verdade)
+(function(){
+  const s=document.getElementById('qr'); let h=''; let x=7;
+  const r=()=>{x=(x*9301+49297)%233280;return x/233280;};
+  const olho=(a,b)=>{h+=`<rect x="${a}" y="${b}" width="7" height="7" fill="#0A1E4D"/><rect x="${a+1}" y="${b+1}" width="5" height="5" fill="#fff"/><rect x="${a+2}" y="${b+2}" width="3" height="3" fill="#0A1E4D"/>`;};
+  for(let i=0;i<29;i++)for(let j=0;j<29;j++){const c=(i<8&&j<8)||(i<8&&j>20)||(i>20&&j<8);if(!c&&r()>.52)h+=`<rect x="${i}" y="${j}" width="1" height="1" fill="#0A1E4D"/>`;}
+  olho(0,0);olho(22,0);olho(0,22); s.innerHTML=h;
+})();
+</script>
+</body>
+</html>
