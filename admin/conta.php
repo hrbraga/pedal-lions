@@ -4,6 +4,7 @@
  * Aqui cada um troca a própria senha.
  */
 require __DIR__ . '/_bootstrap.php';
+require_once __DIR__ . '/../includes/email_pagamento.php';
 admin_exigir();
 
 $meu_id = (int) $_SESSION['admin_id'];
@@ -12,6 +13,26 @@ $erros  = [];
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!csrf_valido(post_txt('csrf'))) {
         flash('erro', 'Sessão expirada. Tente novamente.');
+        header('Location: conta.php');
+        exit;
+    }
+
+    // E-mail de teste (só acesso total): confere se o site consegue enviar pela caixa do domínio
+    if (post_txt('acao') === 'email_teste') {
+        $a = admin_acesso();
+        if (!$a['total'] || $a['trocar']) {
+            flash('erro', 'Só administradores com acesso total podem enviar o e-mail de teste.');
+        } else {
+            $para = trim(post_txt('email_teste'));
+            $erro = filter_var($para, FILTER_VALIDATE_EMAIL) === false
+                ? 'endereço de e-mail inválido'
+                : email_enviar(email_config(), $para, '', email_teste_mensagem(evento(), email_site_base($_SERVER)));
+            if ($erro === null) {
+                flash('ok', 'E-mail de teste enviado para ' . $para . '. Confira a caixa de entrada (e o spam).');
+            } else {
+                flash('erro', 'O e-mail de teste não foi enviado (' . email_motivo_curto($erro) . ').');
+            }
+        }
         header('Location: conta.php');
         exit;
     }
@@ -99,5 +120,19 @@ require __DIR__ . '/_topo.php';
         <button class="adm-btn" type="submit">Alterar minha senha</button>
     </form>
 </section>
+
+<?php if ($acesso['total'] && !$acesso['trocar']): ?>
+<section>
+    <h2>E-mail do site</h2>
+    <p>Envia um exemplo do e-mail de pagamento confirmado (com dados de exemplo) para conferir se o site consegue mandar e-mails.</p>
+    <form method="post" class="adm-form adm-form--cartao">
+        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+        <input type="hidden" name="acao" value="email_teste">
+        <label for="email-teste">Enviar para</label>
+        <input type="email" id="email-teste" name="email_teste" required placeholder="seu@email.com">
+        <button class="adm-btn" type="submit">Enviar e-mail de teste</button>
+    </form>
+</section>
+<?php endif; ?>
 
 <?php require __DIR__ . '/_rodape.php'; ?>

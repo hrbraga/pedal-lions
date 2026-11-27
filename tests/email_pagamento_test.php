@@ -82,5 +82,13 @@ confere('motivo curto: primeira frase', email_motivo_curto('Erro de SMTP: Não f
 confere('motivo curto: sem ponto fica igual', email_motivo_curto('e-mail não configurado'), 'e-mail não configurado');
 confere('motivo curto: ponto em endereço não corta', email_motivo_curto('Endereço de e-mail inválido:  (to): a.b'), 'Endereço de e-mail inválido:  (to): a.b');
 
+// E-mail de teste do painel: mesma mensagem, dados de exemplo e [TESTE] no assunto
+$tt = email_teste_mensagem($ev, $site);
+confere('teste: assunto', $tt['assunto'], '[TESTE] Pagamento confirmado – 2º Pedal Solidário');
+contem('teste: saudação de exemplo', $tt['texto'], 'Olá, Atleta!');
+contem('teste: código de exemplo', $tt['texto'], 'TESTE00001');
+contem('teste: aviso de que é teste', $tt['html'], 'Este é um e-mail de teste');
+contem('teste: botão do regulamento', $tt['html'], 'Clique aqui para ler o regulamento');
+
 echo $falhas ? "\n$falhas falha(s)\n" : "\nTudo certo\n";
 exit($falhas ? 1 : 0);

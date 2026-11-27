@@ -241,3 +241,27 @@ function email_motivo_curto(string $erro): string
     $partes = preg_split('/\.\s/u', $erro, 2);
     return rtrim($partes[0], '.');
 }
+
+/**
+ * E-mail de teste do painel: a mesma mensagem de pagamento confirmado, com dados de exemplo,
+ * "[TESTE]" no assunto e um aviso no começo.
+ */
+function email_teste_mensagem(array $ev, string $site): array
+{
+    $modelos = camiseta_modelos($ev['camiseta'] ?? []);
+    $exemplo = [
+        'nome'             => 'Atleta de Teste',
+        'codigo'           => 'TESTE00001',
+        'categoria'        => (string) ($ev['categorias'][0]['slug'] ?? ''),
+        'camiseta_modelo'  => $modelos[0]['slug'] ?? null,
+        'camiseta_tamanho' => $modelos ? 'M' : null,
+        'valor_total'      => 0,
+    ];
+    $m = email_pago_mensagem($exemplo, $ev, $site);
+    $aviso = 'Este é um e-mail de teste enviado pelo painel. Os dados da inscrição são de exemplo.';
+    $m['assunto'] = '[TESTE] ' . $m['assunto'];
+    $m['texto']   = $aviso . "\n\n" . $m['texto'];
+    $m['html']    = preg_replace('/(<p style="margin:0 0 12px">Olá)/u',
+        '<p style="margin:0 0 16px;padding:10px 12px;background:#FFF1C2;color:#6B4E00;border-radius:6px">' . e($aviso) . '</p>$1', $m['html'], 1);
+    return $m;
+}
