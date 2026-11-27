@@ -47,6 +47,13 @@ foreach (['Olá, Maria', 'PS12345678', 'Light', 'Manga longa, tamanho G', 'R$ 21
     contem('texto', $m['texto'], $t);
     contem('html', $m['html'], htmlspecialchars($t, ENT_QUOTES, 'UTF-8'));
 }
+// Links como botões "Clique aqui para…", cada um com o endereço certo
+foreach (['https://site.test/programacao.php' => 'Clique aqui para ver a programação completa',
+          'https://site.test/regulamento.php' => 'Clique aqui para ler o regulamento',
+          'https://chat.whatsapp.com/ABC' => 'Clique aqui para entrar no grupo do WhatsApp'] as $url => $rotulo) {
+    confere("botão: $rotulo", (bool) preg_match('#<a href="' . preg_quote($url, '#') . '"[^>]*>' . preg_quote(htmlspecialchars($rotulo, ENT_QUOTES, 'UTF-8'), '#') . '</a>#u', $m['html']), true);
+}
+contem('sem grupo, sem botão do grupo', email_pago_mensagem($insc, ['contato' => ['grupo_whatsapp' => ''] + $ev['contato']] + $ev, $site)['html'], 'Clique aqui para entrar no grupo', false);
 contem('texto só com largadas', $m['texto'], 'Retirada de kits', false);
 
 $sem = email_pago_mensagem(['camiseta_tamanho' => null, 'camiseta_modelo' => null] + $insc, $ev, $site);

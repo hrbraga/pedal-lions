@@ -75,11 +75,12 @@ function email_pago_mensagem(array $insc, array $ev, string $site): array
     foreach ($evento as [$r, $v]) {
         $t[] = strpos($v, "\n") !== false ? $r . ":\n  " . str_replace("\n", "\n  ", $v) : $r . ': ' . $v;
     }
-    $t[] = 'Programação completa: ' . $programacao;
-    $t[] = 'Regulamento: ' . $regulamento;
+    $t[] = '';
     if ($grupo !== '') {
-        $t[] = 'Grupo do WhatsApp dos participantes: ' . $grupo;
+        $t[] = 'Para entrar no grupo do WhatsApp dos participantes, acesse: ' . $grupo;
     }
+    $t[] = 'Para ver a programação completa, acesse: ' . $programacao;
+    $t[] = 'Para ler o regulamento, acesse: ' . $regulamento;
     if ($whatsapp !== '') {
         $t[] = 'Dúvidas: WhatsApp ' . $whatsapp;
     }
@@ -96,8 +97,12 @@ function email_pago_mensagem(array $insc, array $ev, string $site): array
         }
         return $h;
     };
-    $link = function (string $url, string $rotulo): string {
-        return '<a href="' . e($url) . '" style="color:#0A1E4D;font-weight:bold">' . e($rotulo) . '</a>';
+    // Botão que funciona nos programas de e-mail (tabela com fundo colorido; o link ocupa o botão todo)
+    $botao = function (string $url, string $rotulo, string $cor): string {
+        return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 10px"><tr>'
+            . '<td align="center" bgcolor="' . $cor . '" style="background:' . $cor . ';border-radius:6px">'
+            . '<a href="' . e($url) . '" target="_blank" style="display:block;padding:13px 16px;color:#FFFFFF;font-weight:bold;font-size:16px;text-decoration:none">'
+            . e($rotulo) . '</a></td></tr></table>';
     };
 
     $h  = '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
@@ -113,9 +118,10 @@ function email_pago_mensagem(array $insc, array $ev, string $site): array
         . '<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 20px">' . $linhas($dados) . '</table>'
         . '<h2 style="font-size:17px;color:#0A1E4D;margin:0 0 8px;border-top:1px solid #D9DFEC;padding-top:16px">O evento</h2>'
         . '<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 16px">' . $linhas($evento) . '</table>'
-        . '<p style="margin:0 0 6px">' . $link($programacao, 'Programação completa') . ' · ' . $link($regulamento, 'Regulamento') . '</p>'
-        . ($grupo !== '' ? '<p style="margin:0 0 6px">' . $link($grupo, 'Entre no grupo do WhatsApp dos participantes') . '</p>' : '')
-        . ($whatsapp !== '' ? '<p style="margin:0 0 6px;color:#55627D">Dúvidas: WhatsApp ' . e($whatsapp) . '</p>' : '')
+        . ($grupo !== '' ? $botao($grupo, 'Clique aqui para entrar no grupo do WhatsApp', '#1B7A3E') : '')
+        . $botao($programacao, 'Clique aqui para ver a programação completa', '#0A1E4D')
+        . $botao($regulamento, 'Clique aqui para ler o regulamento', '#0A1E4D')
+        . ($whatsapp !== '' ? '<p style="margin:16px 0 6px;color:#55627D">Dúvidas: WhatsApp ' . e($whatsapp) . '</p>' : '')
         . '<p style="margin:20px 0 0">Até lá!<br><strong>' . e($org) . '</strong></p>'
         . '</td></tr></table></td></tr></table></body></html>';
 
