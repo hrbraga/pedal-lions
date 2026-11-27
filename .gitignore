@@ -6,3 +6,6 @@ config/banco.php
 
 # E-mail (senha da caixa do domínio): cada lugar tem o seu (veja config/email.exemplo.php)
 config/email.php
+
+# Mercado Pago (credenciais): cada lugar tem as suas (veja config/mercadopago.exemplo.php)
+config/mercadopago.php
