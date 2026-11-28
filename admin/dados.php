@@ -176,7 +176,7 @@ function onde_esta_o_erro(string $caminho): array
         'camiseta' => ['camiseta', 'Camiseta'], 'categorias' => ['categorias', 'Categorias'],
         'premiacoes' => ['premiacoes', 'Premiações'], 'rotas' => ['rotas', 'Rotas'], 'programacao' => ['programacao', 'Programação'],
         'faq' => ['faq', 'Perguntas frequentes'], 'patrocinadores' => ['patrocinadores', 'Patrocinadores'],
-        'causa' => ['causa', 'Destino do dinheiro'], 'causa_fotos' => ['causa', 'Destino do dinheiro – fotos'],
+        'causa' => ['causa', 'Valor arrecadado'], 'causa_fotos' => ['causa', 'Valor arrecadado – fotos'],
     ];
     $partes = explode('.', $caminho);
     [$ancora, $rotulo] = $secoes[$partes[0]] ?? ['geral', 'Geral'];
@@ -390,7 +390,7 @@ $vazio = [];  // formulário vazio, para os modelos de item novo
 $secoes = [
     'geral' => 'Geral', 'inscricoes' => 'Inscrições', 'contatos' => 'Contatos', 'camiseta' => 'Camiseta',
     'categorias' => 'Categorias', 'premiacoes' => 'Premiações', 'rotas' => 'Rotas', 'programacao' => 'Programação',
-    'faq' => 'Perguntas', 'causa' => 'Destino do dinheiro', 'patrocinadores' => 'Patrocinadores', 'historico' => 'Histórico',
+    'faq' => 'Perguntas', 'causa' => 'Valor arrecadado', 'patrocinadores' => 'Patrocinadores', 'historico' => 'Histórico',
 ];
 
 $titulo_admin = 'Dados do Evento';
@@ -541,7 +541,7 @@ require __DIR__ . '/_topo.php';
     </section>
 
     <section id="causa" class="adm-secao">
-        <h2>Para onde vai o dinheiro</h2>
+        <h2>Para onde vai o valor arrecadado</h2>
         <p class="adm-nota">Carrossel de fotos na página inicial, acima do convite para a inscrição. Sem fotos, a seção não aparece.
             Pode enviar a foto direto do celular: ela é reduzida antes do envio. Até <?= CAUSA_MAX_FOTOS ?> fotos, na ordem desta lista.</p>
         <?= adm_campo($f, $erros, 'causa.titulo', 'Título da seção', 'text', 'maxlength="120" placeholder="' . e(CAUSA_TITULO_PADRAO) . '"') ?>
