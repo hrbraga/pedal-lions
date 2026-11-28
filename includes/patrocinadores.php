@@ -31,19 +31,29 @@ function patro_tipo_imagem(string $caminho): ?string
     return $tipos[$info[2]] ?? null;
 }
 
-/** Mensagem para um envio recusado, ou null se estiver tudo certo. */
-function patro_erro_envio(int $erro_upload, int $tamanho, ?string $tipo): ?string
+/**
+ * Mensagem para um envio de imagem recusado, ou null se estiver tudo certo.
+ * $coisa: 'o logo' ou 'a foto' (para as mensagens); $max em bytes.
+ */
+function envio_erro(int $erro_upload, int $tamanho, ?string $tipo, int $max, string $coisa): ?string
 {
-    if (in_array($erro_upload, [UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE], true) || $tamanho > PATRO_MAX_BYTES) {
-        return 'O logo passa de 2 MB.';
+    [$artigo, $nome] = explode(' ', $coisa, 2);
+    if (in_array($erro_upload, [UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE], true) || $tamanho > $max) {
+        return ucfirst($coisa) . ' passa de ' . (int) round($max / 1048576) . ' MB.';
     }
     if ($erro_upload !== UPLOAD_ERR_OK) {
-        return 'O envio do logo falhou. Tente de novo.';
+        return 'O envio ' . ($artigo === 'a' ? 'da ' : 'do ') . $nome . ' falhou. Tente de novo.';
     }
     if ($tipo === null) {
         return 'Use PNG, JPG ou WEBP.';
     }
     return null;
+}
+
+/** Mensagem para um logo recusado, ou null se estiver tudo certo. */
+function patro_erro_envio(int $erro_upload, int $tamanho, ?string $tipo): ?string
+{
+    return envio_erro($erro_upload, $tamanho, $tipo, PATRO_MAX_BYTES, 'o logo');
 }
 
 /** O caminho aponta para um logo enviado pelo painel ou para um da pasta antiga, e o arquivo existe? */
@@ -71,6 +81,16 @@ function patro_url(string $logo): string
  */
 function patro_guardar_envio(array $arquivo, string $raiz): array
 {
+    $r = envio_guardar($arquivo, $raiz, PATRO_ENVIOS, PATRO_MAX_BYTES, 'o logo');
+    return isset($r['caminho']) ? ['logo' => $r['caminho']] : $r;
+}
+
+/**
+ * Guarda uma imagem enviada pelo painel em $pasta (relativa à raiz), com nome sorteado.
+ * Devolve [] se nenhum arquivo foi escolhido, ['caminho' => ...] se guardou, ou ['erro' => mensagem].
+ */
+function envio_guardar(array $arquivo, string $raiz, string $pasta_rel, int $max, string $coisa): array
+{
     $erro = (int) ($arquivo['error'] ?? UPLOAD_ERR_NO_FILE);
     if ($erro === UPLOAD_ERR_NO_FILE) {
         return [];
@@ -80,24 +100,24 @@ function patro_guardar_envio(array $arquivo, string $raiz): array
     $tamanho = max((int) ($arquivo['size'] ?? 0), $existe ? (int) filesize($tmp) : 0);
     $tipo    = $existe ? patro_tipo_imagem($tmp) : null;
 
-    $msg = patro_erro_envio($erro, $tamanho, $tipo);
+    $msg = envio_erro($erro, $tamanho, $tipo, $max, $coisa);
     if ($msg !== null) {
         return ['erro' => $msg];
     }
     if (!is_uploaded_file($tmp)) {
-        return ['erro' => 'O envio do logo falhou. Tente de novo.'];
+        return ['erro' => envio_erro(UPLOAD_ERR_PARTIAL, 0, null, $max, $coisa)];
     }
 
-    $pasta = $raiz . '/' . PATRO_ENVIOS;
+    $pasta = $raiz . '/' . $pasta_rel;
     if (!is_dir($pasta) && !@mkdir($pasta, 0755, true) && !is_dir($pasta)) {
-        return ['erro' => 'Não foi possível guardar o logo no servidor.'];
+        return ['erro' => 'Não foi possível guardar ' . $coisa . ' no servidor.'];
     }
-    $logo = PATRO_ENVIOS . '/' . bin2hex(random_bytes(8)) . '.' . $tipo;
-    if (!@move_uploaded_file($tmp, $raiz . '/' . $logo)) {
-        return ['erro' => 'Não foi possível guardar o logo no servidor.'];
+    $caminho = $pasta_rel . '/' . bin2hex(random_bytes(8)) . '.' . $tipo;
+    if (!@move_uploaded_file($tmp, $raiz . '/' . $caminho)) {
+        return ['erro' => 'Não foi possível guardar ' . $coisa . ' no servidor.'];
     }
-    @chmod($raiz . '/' . $logo, 0644);
-    return ['logo' => $logo];
+    @chmod($raiz . '/' . $caminho, 0644);
+    return ['caminho' => $caminho];
 }
 
 /**
@@ -130,7 +150,13 @@ function patro_orfaos(array $arquivos, array $textos_versoes, int $agora, int $i
 /** Apaga da pasta de envios os logos que nenhuma versão usa mais. Devolve quantos apagou. */
 function patro_limpar_envios(PDO $pdo, string $raiz): int
 {
-    $pasta = $raiz . '/' . PATRO_ENVIOS;
+    return envio_limpar_pasta($pdo, $raiz, PATRO_ENVIOS);
+}
+
+/** Apaga de uma pasta de envios do painel as imagens que nenhuma versão dos Dados do Evento cita. */
+function envio_limpar_pasta(PDO $pdo, string $raiz, string $pasta_rel): int
+{
+    $pasta = $raiz . '/' . $pasta_rel;
     if (!is_dir($pasta)) {
         return 0;
     }

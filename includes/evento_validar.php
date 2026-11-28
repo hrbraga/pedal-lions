@@ -219,6 +219,14 @@ function evento_para_formulario(array $ev): array
             return ['p' => $p['p'] ?? '', 'r' => $p['r'] ?? ''];
         }, $ev['faq'] ?? []),
         'patrocinadores' => $patro,
+        // Fotos salvas como estão (inclusive a que sumiu do servidor: o painel mostra e pede de novo)
+        'causa' => [
+            'titulo' => trim((string) ($ev['causa']['titulo'] ?? '')) !== '' ? (string) $ev['causa']['titulo'] : CAUSA_TITULO_PADRAO,
+            'texto'  => (string) ($ev['causa']['texto'] ?? ''),
+        ],
+        'causa_fotos' => array_values(array_map(function ($f) {
+            return ['foto' => (string) ($f['foto'] ?? ''), 'legenda' => (string) ($f['legenda'] ?? '')];
+        }, array_filter(is_array($ev['causa']['fotos'] ?? null) ? $ev['causa']['fotos'] : [], 'is_array'))),
     ];
 }
 
@@ -483,6 +491,29 @@ function evento_validar(array $entrada, array $atual, array $categorias_com_insc
             $item['url'] = $url;
         }
         $dados['patrocinadores'][] = $item;
+    }
+
+    // Onde o valor arrecadado será usado: título (em branco = padrão), texto curto e fotos do carrossel
+    $ca = is_array($entrada['causa'] ?? null) ? $entrada['causa'] : [];
+    $titulo_causa = $texto($ca, 'titulo', 'causa.titulo', 120, false, 'o título');
+    $dados['causa'] = [
+        'titulo' => $titulo_causa !== '' ? $titulo_causa : CAUSA_TITULO_PADRAO,
+        'texto'  => $texto($ca, 'texto', 'causa.texto', 500, false, 'o texto'),
+        'fotos'  => [],
+    ];
+    foreach (itens_de($entrada, 'causa_fotos', ['foto', 'legenda']) as $n => $it) {
+        if (!causa_foto_valida($it['foto'], patro_raiz())) {
+            $erros["causa_fotos.$n.foto"] = 'Envie a foto.';
+        }
+        $item = ['foto' => $it['foto']];
+        $legenda = $texto($it, 'legenda', "causa_fotos.$n.legenda", 150, false, 'a legenda');
+        if ($legenda !== '') {
+            $item['legenda'] = $legenda;
+        }
+        $dados['causa']['fotos'][] = $item;
+    }
+    if (count($dados['causa']['fotos']) > CAUSA_MAX_FOTOS) {
+        $erros['causa_fotos'] = 'Use no máximo ' . CAUSA_MAX_FOTOS . ' fotos.';
     }
 
     return ['dados' => $dados, 'erros' => $erros];

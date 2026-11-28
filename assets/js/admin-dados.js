@@ -38,6 +38,7 @@
     var botaoSalvar = form.querySelector('[data-salvar]');
 
     form.addEventListener('submit', function (ev) {
+        if (ev.defaultPrevented) return; // fotos ainda sendo preparadas
         // Clique duplo: o segundo envio veria a versão que o primeiro acabou de gravar e acusaria um conflito falso
         if (form.getAttribute('data-enviando')) {
             ev.preventDefault();
@@ -80,6 +81,85 @@
             aviso.hidden = !grande;
         }
     });
+
+    /* Foto do carrossel "Onde o valor arrecadado será usado?": reduz no próprio navegador antes de enviar
+       (lado maior até 1600 px, JPEG), para aceitar a foto original do celular e deixar a página inicial leve.
+       Navegador sem suporte: envia a original (o servidor aceita até 8 MB). */
+    var FOTO_LADO = 1600, FOTO_QUALIDADE = 0.82, FOTO_MAX = 8 * 1024 * 1024;
+    var preparando = 0;
+
+    function reduzirFoto(arquivo) {
+        return new Promise(function (resolve) {
+            if (!window.DataTransfer || !window.File || !HTMLCanvasElement.prototype.toBlob) { resolve(null); return; }
+            var url = URL.createObjectURL(arquivo);
+            var img = new Image();
+            img.onload = function () {
+                URL.revokeObjectURL(url);
+                var lado = Math.max(img.naturalWidth, img.naturalHeight);
+                if (!lado) { resolve(null); return; }
+                var escala = Math.min(1, FOTO_LADO / lado);
+                var tela = document.createElement('canvas');
+                tela.width = Math.round(img.naturalWidth * escala);
+                tela.height = Math.round(img.naturalHeight * escala);
+                var ctx = tela.getContext('2d');
+                ctx.fillStyle = '#fff'; // PNG transparente vira fundo branco no JPEG
+                ctx.fillRect(0, 0, tela.width, tela.height);
+                ctx.drawImage(img, 0, 0, tela.width, tela.height);
+                tela.toBlob(function (blob) {
+                    if (!blob) { resolve(null); return; }
+                    var nome = (arquivo.name || 'foto').replace(/\.[^.]*$/, '') + '.jpg';
+                    resolve(new File([blob], nome, { type: 'image/jpeg', lastModified: Date.now() }));
+                }, 'image/jpeg', FOTO_QUALIDADE);
+            };
+            img.onerror = function () { URL.revokeObjectURL(url); resolve(null); };
+            img.src = url;
+        });
+    }
+
+    function atualizarBotaoSalvar() {
+        if (!botaoSalvar || form.getAttribute('data-enviando')) return;
+        botaoSalvar.disabled = preparando > 0;
+        botaoSalvar.textContent = preparando > 0 ? 'Preparando fotos…' : 'Salvar alterações';
+    }
+
+    form.addEventListener('change', function (ev) {
+        var campo = ev.target;
+        if (!campo.matches || !campo.matches('[data-foto-arquivo]')) return;
+        var item = campo.closest('[data-item]');
+        var previa = item && item.querySelector('[data-logo-previa]');
+        var aviso = item && item.querySelector('[data-logo-aviso]');
+        var arquivo = campo.files && campo.files[0];
+        if (!arquivo) return;
+        if (previa) {
+            if (previa.src && previa.src.indexOf('blob:') === 0) URL.revokeObjectURL(previa.src);
+            previa.src = URL.createObjectURL(arquivo);
+            previa.hidden = false;
+        }
+        preparando++;
+        atualizarBotaoSalvar();
+        reduzirFoto(arquivo).then(function (menor) {
+            if (menor && menor.size < arquivo.size && campo.files && campo.files[0] === arquivo) {
+                try {
+                    var dt = new DataTransfer();
+                    dt.items.add(menor);
+                    campo.files = dt.files;
+                } catch (e) { /* fica a original */ }
+            }
+            var final = campo.files && campo.files[0];
+            if (aviso) {
+                var grande = !!final && final.size > FOTO_MAX;
+                aviso.textContent = grande ? 'A foto passa de 8 MB. Escolha uma foto menor.' : '';
+                aviso.hidden = !grande;
+            }
+        }).then(function () {
+            preparando--;
+            atualizarBotaoSalvar();
+        });
+    });
+
+    form.addEventListener('submit', function (ev) {
+        if (preparando > 0) ev.preventDefault(); // ainda reduzindo: o botão volta a valer em instantes
+    }, true);
 
     form.addEventListener('click', function (ev) {
         var botao = ev.target.closest('[data-adicionar], [data-acao]');

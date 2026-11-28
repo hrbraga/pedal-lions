@@ -379,6 +379,52 @@ ul { margin: 0; padding: 0; }
 .chamada h2 { margin-bottom: .35em; }
 .chamada p { color: var(--suave); max-width: 52ch; margin-inline: auto; margin-bottom: 1.75rem; }
 
+/* Onde o valor arrecadado será usado: carrossel de fotos (rolagem nativa + assets/js/main.js) */
+.causa { margin: 0 auto 3.5rem; max-width: 880px; padding-bottom: 3rem; border-bottom: 1px solid var(--linha); }
+.chamada .causa__texto { margin-bottom: 1.5rem; }
+.causa__palco { position: relative; }
+.causa__faixa {
+    display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth;
+    border-radius: var(--raio); scrollbar-width: none; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain;
+}
+.causa__faixa::-webkit-scrollbar { display: none; }
+.causa__faixa:focus-visible { outline: 3px solid var(--ouro); outline-offset: 3px; }
+.causa__slide { flex: 0 0 100%; margin: 0; scroll-snap-align: center; scroll-snap-stop: always; }
+/* Foto inteira (sem cortar): sobra uma faixa escura quando o formato é diferente */
+.causa__moldura { aspect-ratio: 3 / 2; background: var(--azul); display: flex; align-items: center; justify-content: center; border-radius: var(--raio); overflow: hidden; }
+.causa__moldura img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.causa__slide figcaption { margin-top: .6rem; color: var(--suave); font-size: .95rem; line-height: 1.4; padding-inline: 1rem; }
+.causa__seta {
+    position: absolute; top: calc(50% - 1.5rem); transform: translateY(-50%); width: 2.75rem; height: 2.75rem;
+    border: 0; border-radius: 50%; background: rgba(255,255,255,.92); color: var(--azul); font-size: 2rem; line-height: 1;
+    cursor: pointer; box-shadow: 0 2px 8px rgba(10,30,77,.25); display: grid; place-items: center; padding: 0 0 .2rem;
+}
+.causa__seta[hidden] { display: none; }
+.causa__seta:hover { background: var(--ouro); }
+.causa__seta:focus-visible { outline: 3px solid var(--ouro); outline-offset: 2px; }
+.causa__seta--ant { left: .75rem; }
+.causa__seta--prox { right: .75rem; }
+.causa__controles { display: flex; align-items: center; justify-content: center; gap: 1rem; margin-top: 1rem; flex-wrap: wrap; }
+.causa__controles[hidden] { display: none; }
+.causa__pontos { display: flex; gap: .15rem; }
+/* Alvo de toque de 32 px, bolinha de 10 px */
+.causa__ponto { width: 2rem; height: 2rem; border: 0; background: none; padding: 0; cursor: pointer; display: grid; place-items: center; }
+.causa__ponto::before { content: ''; width: .65rem; height: .65rem; border-radius: 50%; background: var(--linha); transition: background .2s, transform .2s; }
+.causa__ponto[aria-current="true"]::before { background: var(--azul); transform: scale(1.25); }
+.causa__ponto:focus-visible { outline: 2px solid var(--ouro); border-radius: 50%; }
+.causa__pausa {
+    border: 1px solid var(--linha); background: var(--branco); color: var(--suave); border-radius: 999px;
+    font: inherit; font-size: .85rem; padding: .3rem .9rem; cursor: pointer;
+}
+.causa__pausa:hover { color: var(--azul); border-color: var(--azul); }
+@media (max-width: 600px) {
+    .causa { padding-bottom: 2.25rem; margin-bottom: 2.5rem; }
+    .causa__seta { width: 2.25rem; height: 2.25rem; font-size: 1.6rem; }
+    .causa__seta--ant { left: .4rem; }
+    .causa__seta--prox { right: .4rem; }
+}
+@media (prefers-reduced-motion: reduce) { .causa__faixa { scroll-behavior: auto; } .causa__ponto::before { transition: none; } }
+
 /* Atalhos */
 .atalhos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-top: 2rem; }
 .atalhos a {

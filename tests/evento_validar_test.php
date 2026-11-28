@@ -238,6 +238,44 @@ confere('site: lista salva na ordem, pula logo sumido, nome padrão',
     ]], patro_raiz())),
     [['assets/img/patrocinadores/vital.jpg', 'Vital'], ['assets/img/patrocinadores/royal.png', 'Patrocinador']]);
 confere('site: lista vazia salva = nenhum patrocinador', patrocinadores_de(['patrocinadores' => []], patro_raiz()), []);
+
+// Onde o valor arrecadado será usado (título, texto e fotos do carrossel)
+@mkdir(patro_raiz() . '/uploads/causa', 0755, true);
+$foto_teste = 'uploads/causa/' . bin2hex(random_bytes(8)) . '.jpg';
+file_put_contents(patro_raiz() . '/' . $foto_teste, base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='));
+try {
+    $ca = $valida;
+    $ca['causa'] = ['titulo' => 'Para onde vai o dinheiro', 'texto' => 'Ações do Lions na cidade.'];
+    $ca['causa_fotos'] = [['foto' => $foto_teste, 'legenda' => 'Campanha do agasalho'], ['foto' => $foto_teste, 'legenda' => '']];
+    confere('causa: título, texto e fotos na ordem (legenda só quando há)', $v($ca)['dados']['causa'], [
+        'titulo' => 'Para onde vai o dinheiro', 'texto' => 'Ações do Lions na cidade.',
+        'fotos' => [['foto' => $foto_teste, 'legenda' => 'Campanha do agasalho'], ['foto' => $foto_teste]],
+    ]);
+    confere('causa: sem nada = título padrão, sem fotos', $v($valida)['dados']['causa'],
+        ['titulo' => 'Onde o valor arrecadado será usado?', 'texto' => '', 'fotos' => []]);
+    $ca2 = $ca;
+    $ca2['causa_fotos'][1]['foto'] = 'uploads/causa/../patrocinadores/x.png';
+    confere('causa: foto forjada recusada', $v($ca2)['erros']['causa_fotos.1.foto'] ?? null, 'Envie a foto.');
+    $ca2 = $ca;
+    $ca2['causa']['titulo'] = str_repeat('a', 121);
+    confere('causa: título longo', isset($v($ca2)['erros']['causa.titulo']), true);
+    $ca2 = $ca;
+    $ca2['causa']['texto'] = str_repeat('a', 501);
+    confere('causa: texto longo', isset($v($ca2)['erros']['causa.texto']), true);
+    $ca2 = $ca;
+    $ca2['causa_fotos'][0]['legenda'] = str_repeat('a', 151);
+    confere('causa: legenda longa', isset($v($ca2)['erros']['causa_fotos.0.legenda']), true);
+    $ca2 = $ca;
+    $ca2['causa_fotos'] = array_fill(0, 13, ['foto' => $foto_teste, 'legenda' => '']);
+    confere('causa: no máximo 12 fotos', $v($ca2)['erros']['causa_fotos'] ?? null, 'Use no máximo 12 fotos.');
+
+    $form_causa = evento_para_formulario(['causa' => ['titulo' => 'T', 'texto' => 'X', 'fotos' => [['foto' => 'uploads/causa/ffffffffffffffff.jpg']]]] + $atual);
+    confere('formulário: causa e fotos salvas (inclusive a que sumiu, para pedir de novo)',
+        [$form_causa['causa'], $form_causa['causa_fotos']], [['titulo' => 'T', 'texto' => 'X'], [['foto' => 'uploads/causa/ffffffffffffffff.jpg', 'legenda' => '']]]);
+    confere('formulário: sem nada salvo = título padrão', evento_para_formulario($atual)['causa']['titulo'], 'Onde o valor arrecadado será usado?');
+} finally {
+    @unlink(patro_raiz() . '/' . $foto_teste);
+}
 confere('site: sem lista = pasta antiga', count(patrocinadores_de(['patrocinadores_info' => []], patro_raiz())), 4);
 confere('site: pasta antiga com nome e link do formato antigo',
     array_values(array_filter(patrocinadores_de(['patrocinadores_info' => ['royal.png' => ['nome' => 'Royal Ltda', 'url' => 'https://royal.com.br']]], patro_raiz()),

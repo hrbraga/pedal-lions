@@ -9,3 +9,4 @@ config/email.php
 
 # Mercado Pago (credenciais): cada lugar tem as suas (veja config/mercadopago.exemplo.php)
 config/mercadopago.php
+uploads/causa/

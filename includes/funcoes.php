@@ -6,6 +6,7 @@
 date_default_timezone_set('America/Sao_Paulo');
 
 require_once __DIR__ . '/patrocinadores.php';
+require_once __DIR__ . '/causa.php';
 
 // No ambiente local (debug ligado em config/banco.php), mostra os erros do PHP na tela.
 (function () {

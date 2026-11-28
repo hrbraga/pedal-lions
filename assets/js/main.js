@@ -130,6 +130,95 @@
         window.requestAnimationFrame(quadro);
     })();
 
+    /* ---------- Onde o valor arrecadado será usado: carrossel de fotos ----------
+       A faixa é rolagem nativa (arrastar funciona sem JavaScript). Aqui entram setas, bolinhas e a troca
+       automática a cada 5 s, que pausa ao tocar, passar o mouse, focar pelo teclado, fora da tela, no botão
+       Pausar e quando o aparelho pede "reduzir movimento". */
+    (function () {
+        var raiz = document.querySelector('[data-carrossel]');
+        var faixa = raiz && raiz.querySelector('[data-carrossel-faixa]');
+        if (!faixa) return;
+        var slides = Array.prototype.slice.call(faixa.children);
+        if (slides.length < 2) return;
+
+        var INTERVALO = 5000;
+        var ant = raiz.querySelector('[data-carrossel-ant]');
+        var prox = raiz.querySelector('[data-carrossel-prox]');
+        var controles = raiz.querySelector('[data-carrossel-controles]');
+        var pontos = Array.prototype.slice.call(raiz.querySelectorAll('[data-carrossel-ponto]'));
+        var pausa = raiz.querySelector('[data-carrossel-pausa]');
+        var reduzir = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        var atual = 0, parado = reduzir, sobMouse = false, emFoco = false, visivel = true, tocadoEm = 0;
+
+        [ant, prox, controles].forEach(function (el) { if (el) el.hidden = false; });
+        if (pausa) {
+            if (reduzir) pausa.hidden = true; // sem troca automática, não há o que pausar
+            pausa.addEventListener('click', function () {
+                parado = !parado;
+                pausa.setAttribute('aria-pressed', parado ? 'true' : 'false');
+                pausa.textContent = parado ? 'Continuar' : 'Pausar';
+            });
+        }
+
+        function marcar(i) {
+            atual = i;
+            pontos.forEach(function (p, k) { p.setAttribute('aria-current', k === i ? 'true' : 'false'); });
+            // Carrega já a próxima foto para a troca não mostrar a moldura vazia
+            var img = slides[(i + 1) % slides.length].querySelector('img');
+            if (img && img.loading === 'lazy') img.loading = 'eager';
+        }
+
+        function irPara(i) {
+            i = (i + slides.length) % slides.length;
+            faixa.scrollTo({ left: i * faixa.clientWidth, behavior: reduzir ? 'auto' : 'smooth' });
+            marcar(i);
+        }
+
+        // Posição real depois de arrastar com o dedo
+        var espera;
+        faixa.addEventListener('scroll', function () {
+            window.clearTimeout(espera);
+            espera = window.setTimeout(function () {
+                var i = Math.round(faixa.scrollLeft / Math.max(1, faixa.clientWidth));
+                if (i !== atual) marcar(Math.min(i, slides.length - 1));
+            }, 120);
+        }, { passive: true });
+
+        if (ant) ant.addEventListener('click', function () { tocadoEm = Date.now(); irPara(atual - 1); });
+        if (prox) prox.addEventListener('click', function () { tocadoEm = Date.now(); irPara(atual + 1); });
+        pontos.forEach(function (p, k) {
+            p.addEventListener('click', function () { tocadoEm = Date.now(); irPara(k); });
+        });
+        faixa.addEventListener('keydown', function (ev) {
+            if (ev.key === 'ArrowLeft' || ev.key === 'ArrowRight') {
+                ev.preventDefault();
+                tocadoEm = Date.now();
+                irPara(atual + (ev.key === 'ArrowRight' ? 1 : -1));
+            }
+        });
+        faixa.addEventListener('touchstart', function () { tocadoEm = Date.now(); }, { passive: true });
+        faixa.addEventListener('pointerdown', function () { tocadoEm = Date.now(); });
+        if (window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+            raiz.addEventListener('mouseenter', function () { sobMouse = true; });
+            raiz.addEventListener('mouseleave', function () { sobMouse = false; });
+        }
+        raiz.addEventListener('focusin', function (ev) {
+            try { emFoco = ev.target.matches(':focus-visible'); } catch (e) { emFoco = false; }
+        });
+        raiz.addEventListener('focusout', function () { emFoco = false; });
+        if ('IntersectionObserver' in window) {
+            new IntersectionObserver(function (entradas) { visivel = entradas[0].isIntersecting; }).observe(faixa);
+        }
+        // Girou o celular: mantém a foto atual no lugar
+        window.addEventListener('resize', function () { faixa.scrollTo({ left: atual * faixa.clientWidth, behavior: 'auto' }); });
+
+        marcar(0);
+        window.setInterval(function () {
+            if (parado || sobMouse || emFoco || !visivel || document.hidden || Date.now() - tocadoEm < INTERVALO * 2) return;
+            irPara(atual + 1);
+        }, INTERVALO);
+    })();
+
     /* ---------- Contagem regressiva ---------- */
     var contagem = document.querySelector('[data-contagem]');
     if (contagem) {

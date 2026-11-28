@@ -131,6 +131,46 @@ $banner = imagem_opcional('banner.png'); // Se existir assets/img/banner.jpg, el
 
 <section class="secao secao--papel chamada">
     <div class="wrap">
+        <?php $causa = causa_de($ev, patro_raiz()); ?>
+        <?php if ($causa['fotos']): ?>
+            <?php $n_fotos = count($causa['fotos']); ?>
+            <!-- Carrossel: rolagem nativa (arrasta com o dedo); com JavaScript ganha setas, bolinhas e troca automática (assets/js/main.js) -->
+            <div class="causa" role="region" aria-roledescription="carrossel" aria-labelledby="causa-titulo" data-carrossel>
+                <h2 id="causa-titulo"><?= e($causa['titulo']) ?></h2>
+                <?php if ($causa['texto'] !== ''): ?>
+                    <p class="causa__texto"><?= nl2br(e($causa['texto'])) ?></p>
+                <?php endif; ?>
+                <div class="causa__palco">
+                    <div class="causa__faixa" tabindex="0" aria-label="Fotos (arraste para o lado)" data-carrossel-faixa>
+                        <?php foreach ($causa['fotos'] as $k => $foto): ?>
+                            <figure class="causa__slide" role="group" aria-roledescription="foto" aria-label="<?= $k + 1 ?> de <?= $n_fotos ?>">
+                                <div class="causa__moldura">
+                                    <img src="<?= e($foto['arquivo']) ?>" alt="<?= e($foto['legenda'] !== '' ? $foto['legenda'] : 'Ação do Lions Clube de Cornélio Procópio') ?>"
+                                         <?= $k === 0 ? '' : 'loading="lazy"' ?> decoding="async">
+                                </div>
+                                <?php if ($foto['legenda'] !== ''): ?>
+                                    <figcaption aria-hidden="true"><?= e($foto['legenda']) ?></figcaption>
+                                <?php endif; ?>
+                            </figure>
+                        <?php endforeach; ?>
+                    </div>
+                    <?php if ($n_fotos > 1): ?>
+                        <button type="button" class="causa__seta causa__seta--ant" aria-label="Foto anterior" data-carrossel-ant hidden>&#8249;</button>
+                        <button type="button" class="causa__seta causa__seta--prox" aria-label="Próxima foto" data-carrossel-prox hidden>&#8250;</button>
+                    <?php endif; ?>
+                </div>
+                <?php if ($n_fotos > 1): ?>
+                    <div class="causa__controles" data-carrossel-controles hidden>
+                        <div class="causa__pontos">
+                            <?php for ($k = 0; $k < $n_fotos; $k++): ?>
+                                <button type="button" class="causa__ponto" aria-label="Foto <?= $k + 1 ?>" data-carrossel-ponto="<?= $k ?>"></button>
+                            <?php endfor; ?>
+                        </div>
+                        <button type="button" class="causa__pausa" aria-pressed="false" data-carrossel-pausa>Pausar</button>
+                    </div>
+                <?php endif; ?>
+            </div>
+        <?php endif; ?>
         <h2>Pedale por uma boa causa</h2>
         <p>A inscrição só é confirmada após o pagamento. Garanta a sua e chame os amigos para formar uma equipe.</p>
         <?php if (!$fechamento): ?>

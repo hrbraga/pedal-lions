@@ -26,6 +26,7 @@ function limpar_logos(PDO $pdo): void
 {
     try {
         patro_limpar_envios($pdo, patro_raiz());
+        envio_limpar_pasta($pdo, patro_raiz(), CAUSA_ENVIOS);
     } catch (Throwable $e) {
         error_log('Pedal Solidário – limpeza dos logos: ' . $e->getMessage());
     }
@@ -44,7 +45,7 @@ function inscritos_por_categoria(PDO $pdo): array
 // Envio maior que o post_max_size do servidor: o PHP descarta todo o formulário (inclusive o csrf)
 $post_grande = $_SERVER['REQUEST_METHOD'] === 'POST' && $_POST === [] && (int) ($_SERVER['CONTENT_LENGTH'] ?? 0) > 0;
 if ($pdo && $post_grande) {
-    $erros['_'] = 'Os arquivos enviados passam do limite do servidor. Envie menos logos de cada vez.';
+    $erros['_'] = 'Os arquivos enviados passam do limite do servidor. Envie menos logos ou fotos de cada vez.';
 } elseif ($pdo && $_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!csrf_valido(post_txt('csrf'))) {
         flash('erro', 'Sessão expirada. Abra a página de novo e refaça a alteração.');
@@ -91,6 +92,8 @@ if ($pdo && $post_grande) {
             } else {
                 // Logos enviados são guardados já agora: se outro campo tiver erro, o logo não se perde
                 [$entrada, $erros_envio] = patro_receber_envios($_POST, $_FILES, patro_raiz());
+                [$entrada, $erros_fotos] = causa_receber_envios($entrada, $_FILES, patro_raiz());
+                $erros_envio += $erros_fotos;
                 $r = evento_validar($entrada, evento(), array_keys($inscritos));
                 // Salvar que faz as inscrições abrirem NA HORA (ex.: início apagado sem querer) precisa de confirmação
                 $abre_agora = !$r['erros'] && !$erros_envio && post_txt('confirmar_abertura') !== '1'
@@ -140,7 +143,7 @@ $base      = evento_para_formulario($ev);
 // Ao voltar com erro, mostra o que a pessoa enviou (listas sem os itens em branco, como na validação)
 if ($form !== null) {
     $f = $base;
-    foreach (['geral', 'inscricoes', 'contato', 'camiseta'] as $secao) {
+    foreach (['geral', 'inscricoes', 'contato', 'camiseta', 'causa'] as $secao) {
         $f[$secao] = is_array($form[$secao] ?? null) ? $form[$secao] : [];
     }
     $f['camiseta']['modelos'] = itens_de(is_array($form['camiseta'] ?? null) ? $form['camiseta'] : [], 'modelos', ['slug', 'nome', 'valor']);
@@ -151,7 +154,7 @@ if ($form !== null) {
     $listas = [
         'categorias' => ['slug', 'nome', 'valor', 'resumo'], 'premiacoes' => ['titulo', 'regra', 'premio'],
         'rotas' => ['nome', 'distancia', 'altimetria', 'descricao', 'mapa'], 'programacao' => ['hora', 'titulo', 'desc'],
-        'faq' => ['p', 'r'], 'patrocinadores' => ['logo', 'nome', 'url'],
+        'faq' => ['p', 'r'], 'patrocinadores' => ['logo', 'nome', 'url'], 'causa_fotos' => ['foto', 'legenda'],
     ];
     foreach ($listas as $lista => $campos) {
         $f[$lista] = itens_de($form, $lista, $campos);
@@ -173,6 +176,7 @@ function onde_esta_o_erro(string $caminho): array
         'camiseta' => ['camiseta', 'Camiseta'], 'categorias' => ['categorias', 'Categorias'],
         'premiacoes' => ['premiacoes', 'Premiações'], 'rotas' => ['rotas', 'Rotas'], 'programacao' => ['programacao', 'Programação'],
         'faq' => ['faq', 'Perguntas frequentes'], 'patrocinadores' => ['patrocinadores', 'Patrocinadores'],
+        'causa' => ['causa', 'Destino do dinheiro'], 'causa_fotos' => ['causa', 'Destino do dinheiro – fotos'],
     ];
     $partes = explode('.', $caminho);
     [$ancora, $rotulo] = $secoes[$partes[0]] ?? ['geral', 'Geral'];
@@ -326,6 +330,32 @@ function item_patrocinador(array $f, array $erros, string $i): string
         . '</fieldset>';
 }
 
+/**
+ * Foto do carrossel "Onde o valor arrecadado será usado?": prévia, arquivo para enviar/trocar e legenda.
+ * O navegador reduz a foto antes de enviar (assets/js/admin-dados.js).
+ */
+function item_foto_causa(array $f, array $erros, string $i): string
+{
+    $foto = valor_de($f, "causa_fotos.$i.foto");
+    $erro = $erros["causa_fotos.$i.foto"] ?? '';
+    $existe = $foto !== '' && causa_foto_valida($foto, patro_raiz());
+    if ($foto !== '' && !$existe && $erro === '') {
+        $erro = 'O arquivo desta foto não está mais no servidor. Envie a foto de novo.';
+    }
+    $previa = $existe ? ' src="../' . e($foto) . '"' : '';
+    return '<fieldset class="adm-item adm-patro" data-item>' . botoes_item()
+        . '<div class="adm-patro__logo">'
+        . '<img class="adm-patro__previa adm-causa__previa" data-logo-previa alt=""' . $previa . ($existe ? '' : ' hidden') . '>'
+        . '<input type="hidden" name="' . e(nome_de("causa_fotos.$i.foto")) . '" value="' . e($foto) . '">'
+        . '<label class="adm-campo' . ($erro !== '' ? ' adm-campo--erro' : '') . '"><span>' . ($foto === '' ? 'Enviar foto' : 'Trocar foto') . '</span>'
+        . '<input type="file" name="' . e(nome_de("causa_fotos.$i.arquivo")) . '" accept="image/png,image/jpeg,image/webp" data-foto-arquivo'
+        . ($erro !== '' ? ' aria-invalid="true"' : '') . '>'
+        . '<small class="adm-campo__erro" data-logo-aviso' . ($erro === '' ? ' hidden' : '') . '>' . e($erro) . '</small>'
+        . '</label></div>'
+        . adm_campo($f, $erros, "causa_fotos.$i.legenda", 'Legenda (opcional)', 'text', 'maxlength="150" placeholder="Ex.: Campanha do agasalho 2025"')
+        . '</fieldset>';
+}
+
 /** Modelo de camiseta: nome e preço (o identificador escondido não muda depois de criado). */
 function item_modelo(array $f, array $erros, string $i): string
 {
@@ -360,7 +390,7 @@ $vazio = [];  // formulário vazio, para os modelos de item novo
 $secoes = [
     'geral' => 'Geral', 'inscricoes' => 'Inscrições', 'contatos' => 'Contatos', 'camiseta' => 'Camiseta',
     'categorias' => 'Categorias', 'premiacoes' => 'Premiações', 'rotas' => 'Rotas', 'programacao' => 'Programação',
-    'faq' => 'Perguntas', 'patrocinadores' => 'Patrocinadores', 'historico' => 'Histórico',
+    'faq' => 'Perguntas', 'causa' => 'Destino do dinheiro', 'patrocinadores' => 'Patrocinadores', 'historico' => 'Histórico',
 ];
 
 $titulo_admin = 'Dados do Evento';
@@ -508,6 +538,18 @@ require __DIR__ . '/_topo.php';
         <?= lista('faq', 'faq', $f['faq'], function ($i) use ($f, $erros, $vazio) {
             return item_faq($i === '__i__' ? $vazio : $f, $erros, $i);
         }, 'Adicionar pergunta') ?>
+    </section>
+
+    <section id="causa" class="adm-secao">
+        <h2>Para onde vai o dinheiro</h2>
+        <p class="adm-nota">Carrossel de fotos na página inicial, acima do convite para a inscrição. Sem fotos, a seção não aparece.
+            Pode enviar a foto direto do celular: ela é reduzida antes do envio. Até <?= CAUSA_MAX_FOTOS ?> fotos, na ordem desta lista.</p>
+        <?= adm_campo($f, $erros, 'causa.titulo', 'Título da seção', 'text', 'maxlength="120" placeholder="' . e(CAUSA_TITULO_PADRAO) . '"') ?>
+        <?= adm_campo($f, $erros, 'causa.texto', 'Texto curto (opcional)', 'textarea', 'maxlength="500"') ?>
+        <?= erro_lista($erros, 'causa_fotos') ?>
+        <?= lista('causa_fotos', 'causa_fotos', $f['causa_fotos'] ?? [], function ($i) use ($f, $erros, $vazio) {
+            return item_foto_causa($i === '__i__' ? $vazio : $f, $erros, $i);
+        }, 'Adicionar foto') ?>
     </section>
 
     <section id="patrocinadores" class="adm-secao">
