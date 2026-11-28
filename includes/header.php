@@ -8,6 +8,10 @@ $titulo_pagina = !empty($titulo)
 $descricao_pagina = $descricao ?? ($ev['nome'] . ' do ' . $ev['organizador'] . '. ' . $ev['data_curta'] . ' em ' . $ev['cidade'] . '. Faça sua inscrição.');
 $logo = imagem_opcional('logo.png');
 
+// Prévia ao compartilhar o link (WhatsApp, Facebook, Instagram): endereços completos, como essas redes exigem
+$base_site = site_base($_SERVER);
+$url_pagina = preg_replace('#^(https?://[^/]+).*$#', '$1', $base_site) . strtok((string) ($_SERVER['REQUEST_URI'] ?? '/'), '?');
+
 $menu = [
     'inicio'      => ['./',              'Início'],
     'rotas'       => ['rotas.php',       'Rotas'],
@@ -31,6 +35,18 @@ if (empty($ev['lista_inscritos_publica'])) {
     <meta name="description" content="<?= e($descricao_pagina) ?>">
     <?php if (!empty($noindex)): ?><meta name="robots" content="noindex"><?php endif; ?>
     <meta name="theme-color" content="#0A1E4D">
+    <meta property="og:type" content="website">
+    <meta property="og:locale" content="pt_BR">
+    <meta property="og:site_name" content="<?= e($ev['nome']) ?>">
+    <meta property="og:title" content="<?= e($titulo_pagina) ?>">
+    <meta property="og:description" content="<?= e($descricao_pagina) ?>">
+    <meta property="og:url" content="<?= e($url_pagina) ?>">
+    <meta property="og:image" content="<?= e($base_site . '/' . asset('assets/img/compartilhar.jpg')) ?>">
+    <meta property="og:image:type" content="image/jpeg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="<?= e($ev['nome'] . ' – ' . $ev['data_extenso'] . ', ' . $ev['cidade']) ?>">
+    <meta name="twitter:card" content="summary_large_image">
     <link rel="icon" href="favicon.ico" sizes="any">
     <link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="assets/img/favicon-16.png">

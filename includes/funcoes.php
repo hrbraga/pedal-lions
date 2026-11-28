@@ -318,3 +318,12 @@ function asset(string $caminho): string
     $versao  = is_file($arquivo) ? (int) filemtime($arquivo) : 0;
     return $caminho . '?v=' . $versao;
 }
+
+/** Endereço do site (https://dominio/pasta) a partir do pedido atual, sem barra no fim (vale também de dentro de admin/). */
+function site_base(array $server): string
+{
+    $https  = !empty($server['HTTPS']) && strtolower((string) $server['HTTPS']) !== 'off';
+    $pasta  = str_replace('\\', '/', dirname((string) ($server['SCRIPT_NAME'] ?? '/')));
+    $pasta  = preg_replace('#/admin$#', '', rtrim($pasta, '/'));
+    return ($https ? 'https://' : 'http://') . ($server['HTTP_HOST'] ?? 'localhost') . $pasta;
+}

@@ -221,10 +221,7 @@ function email_instrucoes_mensagem(array $insc, array $ev, string $site, ?array 
 /** Endereço do site (https://dominio/pasta) a partir do pedido atual, sem barra no fim. */
 function email_site_base(array $server): string
 {
-    $https  = !empty($server['HTTPS']) && strtolower((string) $server['HTTPS']) !== 'off';
-    $pasta  = str_replace('\\', '/', dirname((string) ($server['SCRIPT_NAME'] ?? '/')));
-    $pasta  = preg_replace('#/admin$#', '', rtrim($pasta, '/'));
-    return ($https ? 'https://' : 'http://') . ($server['HTTP_HOST'] ?? 'localhost') . $pasta;
+    return site_base($server);
 }
 
 /* ---------- Envio pela caixa do domínio (SMTP) ---------- */
