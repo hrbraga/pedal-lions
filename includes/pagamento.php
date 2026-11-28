@@ -234,10 +234,43 @@ function pagamento_processar(PDO $pdo, array $mp, int $vagas, string $site, ?arr
         liberar_trava_vagas($pdo, $trava);
     }
 
+    if (in_array($resultado, ['pago', 'pago_atrasado', 'sem_vaga'], true)) {
+        pagamento_cancelar_pix_pendentes($pdo, mp_config(), $id, $mp_id); // o QR antigo não pode ser pago de novo
+    }
     if (in_array($resultado, ['pago', 'pago_atrasado'], true) && empty($atual['email_pago_em'])) {
         email_pago_enviar($pdo, $id, $site, $cfg_email); // falha fica registrada na inscrição; o pagamento continua confirmado
     }
     return $resultado;
+}
+
+/**
+ * Cancela no Mercado Pago os Pix ainda pendentes da inscrição (já paga por outro meio ou cancelada), para o atleta
+ * não pagar duas vezes pelo QR do e-mail ou da página. Pix que já foi pago lá não é cancelado (o Mercado Pago recusa)
+ * e segue o caminho normal do aviso. Devolve quantos cancelou; nunca lança.
+ */
+function pagamento_cancelar_pix_pendentes(PDO $pdo, ?array $cfg_mp, int $inscricao_id, string $exceto_mp_id = ''): int
+{
+    if (!$cfg_mp) {
+        return 0;
+    }
+    $cancelados = 0;
+    try {
+        $st = $pdo->prepare("SELECT mp_id FROM pagamentos WHERE inscricao_id = :id AND metodo = 'pix' AND status = 'pending' AND mp_id <> :exceto");
+        $st->execute([':id' => $inscricao_id, ':exceto' => $exceto_mp_id]);
+        foreach ($st->fetchAll(PDO::FETCH_COLUMN) as $mp_id) {
+            $r = mp_cancelar_pagamento($cfg_mp, (string) $mp_id);
+            if ($r['http'] === 200 && ($r['dados']['status'] ?? '') === 'cancelled') {
+                $pdo->prepare("UPDATE pagamentos SET status = 'cancelled', status_detalhe = :d WHERE mp_id = :mp")
+                    ->execute([':d' => mb_substr((string) ($r['dados']['status_detail'] ?? 'by_collector'), 0, 60), ':mp' => $mp_id]);
+                $cancelados++;
+            } else {
+                error_log('Pedal Solidário – Pix ' . $mp_id . ' não cancelado: ' . ($r['erro'] ?? 'resposta inesperada'));
+            }
+        }
+    } catch (Throwable $e) {
+        error_log('Pedal Solidário – cancelar Pix pendentes da inscrição ' . $inscricao_id . ': ' . $e->getMessage());
+    }
+    return $cancelados;
 }
 
 /**

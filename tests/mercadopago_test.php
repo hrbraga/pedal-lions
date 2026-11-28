@@ -73,6 +73,15 @@ try {
     confere('pagamento inexistente = 404', mp_buscar_pagamento($cfg, '999999')['http'], 404);
     confere('token inválido = 401', mp_buscar_pagamento(['access_token' => ''] + $cfg, $id)['http'], 401);
 
+    // Cancelamento (Pix que não deve mais ser pago)
+    $pix = mp_criar_pix($cfg, ['codigo' => 'CANC000001'] + $insc, '2026-11-28T14:30:00.000-03:00');
+    $c = mp_cancelar_pagamento($cfg, (string) $pix['dados']['id']);
+    confere('cancela Pix pendente', [$c['http'], $c['dados']['status'] ?? null], [200, 'cancelled']);
+    $ped = mp_falso_estado($porta)['pedidos'];
+    $p = end($ped);
+    confere('cancelamento: PUT com status cancelled', [$p['metodo'], $p['corpo']], ['PUT', ['status' => 'cancelled']]);
+    confere('não cancela pagamento aprovado', mp_cancelar_pagamento($cfg, $id)['http'], 400);
+
     // Fora do ar
     $t0 = microtime(true);
     $r = mp_buscar_pagamento(['api' => 'http://127.0.0.1:25269'] + $cfg, $id);

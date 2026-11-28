@@ -29,6 +29,12 @@ function mp_config(?string $arquivo = null): ?array
     ];
 }
 
+/** Cancela um pagamento que ainda não foi pago (Pix pendente). O Mercado Pago recusa (400) se já foi pago. */
+function mp_cancelar_pagamento(array $cfg, string $id): array
+{
+    return mp_requisicao($cfg, 'PUT', '/v1/payments/' . rawurlencode($id), ['status' => 'cancelled']);
+}
+
 /**
  * Uma chamada à API. Devolve ['http' => código (0 = sem resposta), 'dados' => JSON decodificado ou null,
  * 'erro' => null ou motivo curto (até 255 caracteres)].

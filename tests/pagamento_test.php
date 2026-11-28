@@ -183,6 +183,28 @@ try {
     $fin = array_values(array_filter(fin_inscricoes_com_pagamento($pdo), fn ($r) => $r['codigo'] === linha($pt)['codigo']));
     confere('reembolsado: tarifa sai do financeiro', isset($fin[0]) && array_key_exists('tarifa_mp', $fin[0]) ? $fin[0]['tarifa_mp'] : 'sem linha', null);
 
+    // ---- Pix pendente deixa de valer quando a inscrição é paga de outro jeito ----
+    $status_mp = function ($mp_id) { return mp_falso_estado(PORTA_MP)['pagamentos'][(string) $mp_id]['status'] ?? null; };
+    $status_db = function ($mp_id) use ($pdo) { return $pdo->query('SELECT status FROM pagamentos WHERE mp_id = ' . (int) $mp_id)->fetchColumn(); };
+    $pc = insc_teste(['cpf' => '90000000018'], 'NOW() + INTERVAL 1 HOUR');
+    $pix_c = pagamento_falso($pc, 'pending');
+    pagamento_registrar($pdo, $pc, $pix_c);
+    confere('cartão aprovado com Pix pendente → pago', pagamento_processar($pdo, pagamento_falso($pc, 'approved', 'APRO'), 0, $site, null), 'pago');
+    confere('Pix pendente cancelado no Mercado Pago', $status_mp($pix_c['id']), 'cancelled');
+    confere('Pix pendente cancelado no banco', $status_db($pix_c['id']), 'cancelled');
+
+    $pa = insc_teste(['cpf' => '90000000017'], 'NOW() + INTERVAL 1 HOUR');
+    $pix_a = pagamento_falso($pa, 'pending');
+    pagamento_registrar($pdo, $pa, $pix_a);
+    mp_falso_mudar(PORTA_MP, $pix_a['id'], ['status' => 'approved']); // pago lá, aviso ainda não chegou
+    confere('Pix já pago lá não é cancelado', pagamento_cancelar_pix_pendentes($pdo, $cfg_mp, $pa), 0);
+    confere('Pix já pago: continua aprovado lá', $status_mp($pix_a['id']), 'approved');
+    confere('Pix já pago: banco não marca cancelado', $status_db($pix_a['id']), 'pending');
+    confere('sem configuração não cancela nada', pagamento_cancelar_pix_pendentes($pdo, null, $pa), 0);
+    $pdo->exec("UPDATE pagamentos SET status = 'pending' WHERE mp_id = " . (int) $pix_c['id']);
+    mp_falso_mudar(PORTA_MP, $pix_c['id'], ['status' => 'pending']);
+    confere('confirmação manual: cancela o Pix pendente', pagamento_cancelar_pix_pendentes($pdo, $cfg_mp, $pc), 1);
+
     $p2 = insc_teste(['cpf' => '90000000012'], 'NOW() + INTERVAL 1 HOUR');
     $mp2 = pagamento_falso($p2, 'approved');
     $mp2['transaction_amount'] = 1.0;

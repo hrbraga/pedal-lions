@@ -52,6 +52,7 @@ try {
             }
             $pdo->prepare("UPDATE inscricoes SET status = 'pago', pago_em = COALESCE(pago_em, NOW()) WHERE id = :id")->execute([':id' => $id]);
             liberar_trava_vagas($pdo, $trava);
+            pagamento_cancelar_pix_pendentes($pdo, mp_config(), $id); // pagou por fora: o Pix do site deixa de valer
             // Avisa o atleta por e-mail uma vez só (reconfirmar depois de voltar a pendente não reenvia)
             if (!empty($insc['email_pago_em'])) {
                 flash('ok', 'Pagamento confirmado: ' . $insc['nome'] . '. O e-mail de confirmação já tinha sido enviado.');
@@ -86,6 +87,7 @@ try {
 
         case 'cancelado':
             $pdo->prepare("UPDATE inscricoes SET status = 'cancelado' WHERE id = :id")->execute([':id' => $id]);
+            pagamento_cancelar_pix_pendentes($pdo, mp_config(), $id); // inscrição cancelada não recebe mais pelo Pix
             flash('ok', 'Inscrição de ' . $insc['nome'] . ' cancelada.');
             break;
 

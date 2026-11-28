@@ -6,6 +6,7 @@
  *
  *  POST /v1/payments      pix → pending com QR falso; cartão pelo token: APRO → approved, OTHE → rejected, CONT → in_process
  *  GET  /v1/payments/{id} → o pagamento guardado (404 se não existe)
+ *  PUT  /v1/payments/{id} → {"status":"cancelled"} cancela se ainda pending/in_process (senão 400)
  *  POST /__mudar/{id}     → altera campos do pagamento guardado (ex.: {"status":"approved"})
  */
 $arquivo = sys_get_temp_dir() . '/mp_falso_' . $_SERVER['SERVER_PORT'] . '.json';
@@ -78,6 +79,19 @@ if ($metodo === 'POST' && $caminho === '/v1/payments') {
         $estado['idem'][$idem] = $id;
     }
     $responder(201, $p);
+}
+
+if ($metodo === 'PUT' && preg_match('#^/v1/payments/(\d+)$#', $caminho, $m)) {
+    // Como o real: só cancela o que ainda não foi pago
+    if (!isset($estado['pagamentos'][$m[1]])) {
+        $responder(404, ['message' => 'Payment not found', 'status' => 404]);
+    }
+    if (($corpo['status'] ?? '') !== 'cancelled' || !in_array($estado['pagamentos'][$m[1]]['status'], ['pending', 'in_process'], true)) {
+        $responder(400, ['message' => 'Invalid status for update', 'status' => 400]);
+    }
+    $estado['pagamentos'][$m[1]]['status'] = 'cancelled';
+    $estado['pagamentos'][$m[1]]['status_detail'] = 'by_collector';
+    $responder(200, $estado['pagamentos'][$m[1]]);
 }
 
 if ($metodo === 'GET' && preg_match('#^/v1/payments/(\d+)$#', $caminho, $m)) {
