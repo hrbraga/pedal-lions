@@ -70,6 +70,20 @@ confere('automáticos por dia e origem', $auto, [
     ['data' => '2026-12-06', 'tipo' => 'saida', 'rotulo' => 'Repasse da taxa de administração', 'valor' => 600, 'qtd' => 1],
 ]);
 
+// Tarifas do Mercado Pago: saída automática pela data do pagamento (pagas e pagas-depois-canceladas)
+$tar = fin_automaticos([
+    ['status' => 'pago', 'pago_em' => '2026-12-05 10:00:00', 'valor_inscricao' => '60.00', 'valor_desconto' => '0', 'valor_taxa' => '0', 'valor_camiseta' => '0', 'tarifa_mp' => '2.97'],
+    ['status' => 'pago', 'pago_em' => '2026-12-05 11:00:00', 'valor_inscricao' => '60.00', 'valor_desconto' => '0', 'valor_taxa' => '0', 'valor_camiseta' => '0', 'tarifa_mp' => '0.59'],
+    ['status' => 'pago', 'pago_em' => '2026-12-05 12:00:00', 'valor_inscricao' => '60.00', 'valor_desconto' => '0', 'valor_taxa' => '0', 'valor_camiseta' => '0', 'tarifa_mp' => null],
+    ['status' => 'cancelado', 'pago_em' => '2026-12-06 09:00:00', 'valor_inscricao' => '60.00', 'valor_desconto' => '0', 'valor_taxa' => '0', 'valor_camiseta' => '0', 'tarifa_mp' => '1.50'],
+    ['status' => 'pendente', 'pago_em' => null, 'valor_inscricao' => '60.00', 'valor_desconto' => '0', 'valor_taxa' => '0', 'valor_camiseta' => '0', 'tarifa_mp' => '9.99'],
+]);
+confere('tarifas do Mercado Pago: saída por dia', array_values(array_filter($tar, fn ($l) => $l['rotulo'] === 'Tarifas do Mercado Pago')), [
+    ['data' => '2026-12-05', 'tipo' => 'saida', 'rotulo' => 'Tarifas do Mercado Pago', 'valor' => 356, 'qtd' => 2],
+    ['data' => '2026-12-06', 'tipo' => 'saida', 'rotulo' => 'Tarifas do Mercado Pago', 'valor' => 150, 'qtd' => 1],
+]);
+confere('nome reservado: Tarifas do Mercado Pago', fin_nome_reservado('tarifas do mercado pago'), true);
+
 // Balancete
 $man = [
     ['id' => 1, 'data' => '2026-12-01', 'tipo' => 'entrada', 'categoria' => 'Patrocínios', 'descricao' => 'Royal', 'valor' => 50000, 'criado_por' => 'admin'],

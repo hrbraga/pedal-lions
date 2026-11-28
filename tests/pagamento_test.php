@@ -11,6 +11,7 @@ require_once __DIR__ . '/../includes/cupons.php';
 require_once __DIR__ . '/../includes/pagamento.php';
 require_once __DIR__ . '/../includes/mercadopago.php';
 require_once __DIR__ . '/../includes/email_pagamento.php';
+require_once __DIR__ . '/../includes/financeiro.php';
 require_once __DIR__ . '/mp_falso_util.php';
 
 const PORTA_MP   = 25264; // Mercado Pago falso
@@ -159,6 +160,28 @@ try {
     confere('aviso repetido não reenvia', pagamento_processar($pdo, $mp1, 0, $site, null), 'repetido');
     confere('aviso repetido: pago_em igual', linha($p1)['pago_em'], $l['pago_em']);
     confere('aviso repetido: nenhuma nova tentativa de e-mail', linha($p1)['email_pago_erro'], 'MARCA');
+
+    // ---- Tarifa do Mercado Pago (só a parte paga pelo clube, nunca os juros pagos pelo atleta) ----
+    confere('tarifa: soma as do recebedor', pagamento_tarifa(['fee_details' => [
+        ['type' => 'mercadopago_fee', 'amount' => 2.5, 'fee_payer' => 'collector'],
+        ['type' => 'application_fee', 'amount' => 0.47, 'fee_payer' => 'collector'],
+        ['type' => 'financing_fee', 'amount' => 4.1, 'fee_payer' => 'payer'],
+    ]]), 2.97);
+    confere('tarifa: sem detalhes = desconhecida', pagamento_tarifa(['status' => 'pending']), null);
+    confere('tarifa: lista vazia = zero', pagamento_tarifa(['fee_details' => []]), 0.0);
+    $pt = insc_teste(['cpf' => '90000000019'], 'NOW() + INTERVAL 1 HOUR');
+    $mpt = pagamento_falso($pt, 'approved');
+    $mpt['fee_details'] = [['type' => 'mercadopago_fee', 'amount' => 0.92, 'fee_payer' => 'collector']];
+    pagamento_processar($pdo, $mpt, 0, $site, null);
+    confere('tarifa guardada no pagamento', $pdo->query('SELECT taxa_mp FROM pagamentos WHERE mp_id = ' . (int) $mpt['id'])->fetchColumn(), '0.92');
+    $fin = array_values(array_filter(fin_inscricoes_com_pagamento($pdo), fn ($r) => $r['codigo'] === linha($pt)['codigo']));
+    confere('financeiro recebe a tarifa da inscrição paga', $fin[0]['tarifa_mp'] ?? null, '0.92');
+    unset($mpt['fee_details']);
+    pagamento_registrar($pdo, $pt, $mpt);
+    confere('consulta sem detalhes não apaga a tarifa', $pdo->query('SELECT taxa_mp FROM pagamentos WHERE mp_id = ' . (int) $mpt['id'])->fetchColumn(), '0.92');
+    pagamento_registrar($pdo, $pt, ['status' => 'refunded'] + $mpt);
+    $fin = array_values(array_filter(fin_inscricoes_com_pagamento($pdo), fn ($r) => $r['codigo'] === linha($pt)['codigo']));
+    confere('reembolsado: tarifa sai do financeiro', isset($fin[0]) && array_key_exists('tarifa_mp', $fin[0]) ? $fin[0]['tarifa_mp'] : 'sem linha', null);
 
     $p2 = insc_teste(['cpf' => '90000000012'], 'NOW() + INTERVAL 1 HOUR');
     $mp2 = pagamento_falso($p2, 'approved');

@@ -97,14 +97,33 @@ function pagamento_gerar_pix(PDO $pdo, array $cfg_mp, int $inscricao_id): ?strin
 }
 
 /** Guarda (ou atualiza) um pagamento do Mercado Pago na tabela pagamentos. */
+/**
+ * Tarifa que o Mercado Pago cobrou do clube neste pagamento (soma de fee_details com fee_payer = collector).
+ * Os juros do parcelamento pagos pelo atleta (fee_payer = payer) não entram. Sem fee_details: null (ainda não informada).
+ */
+function pagamento_tarifa(array $mp): ?float
+{
+    if (!isset($mp['fee_details']) || !is_array($mp['fee_details'])) {
+        return null;
+    }
+    $total = 0.0;
+    foreach ($mp['fee_details'] as $f) {
+        if (is_array($f) && ($f['fee_payer'] ?? '') === 'collector') {
+            $total += (float) ($f['amount'] ?? 0);
+        }
+    }
+    return round($total, 2);
+}
+
 function pagamento_registrar(PDO $pdo, int $inscricao_id, array $mp): void
 {
     $pix    = ($mp['payment_method_id'] ?? '') === 'pix';
     $dados  = (array) ($mp['point_of_interaction']['transaction_data'] ?? []);
     $expira = !empty($mp['date_of_expiration']) ? date('Y-m-d H:i:s', strtotime((string) $mp['date_of_expiration'])) : null;
-    $st = $pdo->prepare('INSERT INTO pagamentos (inscricao_id, mp_id, metodo, parcelas, status, status_detalhe, valor, pix_copia_cola, pix_qr_base64, pix_expira_em)
-                         VALUES (:i, :mp, :metodo, :parcelas, :status, :detalhe, :valor, :copia, :qr, :expira)
+    $st = $pdo->prepare('INSERT INTO pagamentos (inscricao_id, mp_id, metodo, parcelas, status, status_detalhe, valor, taxa_mp, pix_copia_cola, pix_qr_base64, pix_expira_em)
+                         VALUES (:i, :mp, :metodo, :parcelas, :status, :detalhe, :valor, :taxa, :copia, :qr, :expira)
                          ON DUPLICATE KEY UPDATE status = VALUES(status), status_detalhe = VALUES(status_detalhe), valor = VALUES(valor),
+                             taxa_mp = COALESCE(VALUES(taxa_mp), taxa_mp),
                              pix_copia_cola = COALESCE(VALUES(pix_copia_cola), pix_copia_cola),
                              pix_qr_base64 = COALESCE(VALUES(pix_qr_base64), pix_qr_base64),
                              pix_expira_em = COALESCE(VALUES(pix_expira_em), pix_expira_em)');
@@ -116,6 +135,7 @@ function pagamento_registrar(PDO $pdo, int $inscricao_id, array $mp): void
         ':status'   => mb_substr((string) ($mp['status'] ?? '?'), 0, 30),
         ':detalhe'  => isset($mp['status_detail']) ? mb_substr((string) $mp['status_detail'], 0, 60) : null,
         ':valor'    => round((float) ($mp['transaction_amount'] ?? 0), 2),
+        ':taxa'     => pagamento_tarifa($mp),
         ':copia'    => $pix ? ($dados['qr_code'] ?? null) : null,
         ':qr'       => $pix ? ($dados['qr_code_base64'] ?? null) : null,
         ':expira'   => $pix ? $expira : null,

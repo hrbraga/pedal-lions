@@ -118,6 +118,7 @@ CREATE TABLE IF NOT EXISTS pagamentos (
     status VARCHAR(30) NOT NULL,                 -- status do Mercado Pago (pending, approved, rejected…)
     status_detalhe VARCHAR(60) NULL,
     valor DECIMAL(8,2) NOT NULL,
+    taxa_mp DECIMAL(8,2) NULL,                   -- tarifa do Mercado Pago paga pelo clube (fee_details do recebedor)
     pix_copia_cola TEXT NULL,
     pix_qr_base64 MEDIUMTEXT NULL,
     pix_expira_em DATETIME NULL,

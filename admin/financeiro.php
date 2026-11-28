@@ -316,7 +316,8 @@ $erro_campo = function (string $campo) use ($erros): string {
             <tr class="adm-balancete__saldo"><th>Saldo</th><th class="num"><?= e(fin_moeda($b['saldo_final'])) ?></th></tr>
         </table>
         <p class="adm-nota">Automáticos: inscrições, camisetas e taxas pagas, pela data em que o pagamento foi confirmado.
-            A taxa de administração entra e sai (repasse) no mesmo valor. Diferente da tela Inscritos, aqui as inscrições pagas e
+            A taxa de administração entra e sai (repasse) no mesmo valor. As tarifas do Mercado Pago saem com o valor
+            exato que ele cobrou em cada pagamento aprovado (não inclui os juros do parcelamento pagos pelo atleta). Diferente da tela Inscritos, aqui as inscrições pagas e
             depois canceladas continuam (não há reembolso).</p>
     </section>
     <?php endif; ?>

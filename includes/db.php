@@ -189,6 +189,9 @@ function esquema_atualizar(PDO $pdo): void
                 INDEX idx_inscricao (inscricao_id)
             ) ENGINE=InnoDB");
         }
+        if (!$pdo->query("SHOW COLUMNS FROM pagamentos LIKE 'taxa_mp'")->fetch()) {
+            $pdo->exec("ALTER TABLE pagamentos ADD COLUMN taxa_mp DECIMAL(8,2) NULL AFTER valor");
+        }
     } catch (PDOException $e) {
         error_log('Pedal Solidário – atualização do esquema: ' . $e->getMessage());
     }

@@ -15,6 +15,7 @@ const FIN_AUTO = [
     'Inscrições canceladas (sem reembolso)' => 'entrada',
     'Taxa de administração'                 => 'entrada',
     'Repasse da taxa de administração'      => 'saida',
+    'Tarifas do Mercado Pago'               => 'saida',
 ];
 
 const FIN_CATEGORIAS_INICIAIS = [
@@ -110,7 +111,8 @@ function fin_validar_lancamento(array $e, array $categorias): array
 
 /**
  * Valores automáticos das inscrições, agrupados por dia de pagamento e origem.
- * $inscricoes: linhas com status, pago_em, valor_inscricao, valor_desconto, valor_taxa, valor_camiseta.
+ * $inscricoes: linhas com status, pago_em, valor_inscricao, valor_desconto, valor_taxa, valor_camiseta e
+ * tarifa_mp (tarifa cobrada pelo Mercado Pago nos pagamentos aprovados; null se não houver).
  * Devolve linhas ['data', 'tipo', 'rotulo', 'valor' (centavos), 'qtd'], por data e na ordem de FIN_AUTO.
  */
 function fin_automaticos(array $inscricoes): array
@@ -139,6 +141,7 @@ function fin_automaticos(array $inscricoes): array
         }
         $somar($data, 'Taxa de administração', $taxa);
         $somar($data, 'Repasse da taxa de administração', $taxa);
+        $somar($data, 'Tarifas do Mercado Pago', fin_de_decimal($i['tarifa_mp'] ?? 0));
     }
     ksort($dias);
     $linhas = [];
@@ -285,6 +288,8 @@ function fin_lancamentos(PDO $pdo): array
 /** Inscrições com pagamento confirmado (pagas ou pagas e depois canceladas), para fin_automaticos. */
 function fin_inscricoes_com_pagamento(PDO $pdo): array
 {
-    return $pdo->query('SELECT status, pago_em, valor_inscricao, valor_desconto, valor_taxa, valor_camiseta
-                        FROM inscricoes WHERE pago_em IS NOT NULL')->fetchAll();
+    // Tarifa só dos pagamentos que seguem aprovados (no reembolso o Mercado Pago devolve a tarifa)
+    return $pdo->query("SELECT i.codigo, i.status, i.pago_em, i.valor_inscricao, i.valor_desconto, i.valor_taxa, i.valor_camiseta,
+                               (SELECT SUM(p.taxa_mp) FROM pagamentos p WHERE p.inscricao_id = i.id AND p.status = 'approved') AS tarifa_mp
+                        FROM inscricoes i WHERE i.pago_em IS NOT NULL")->fetchAll();
 }
